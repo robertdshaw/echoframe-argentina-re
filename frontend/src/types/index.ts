@@ -282,6 +282,35 @@ export interface HmmDiagnostics {
   state_means_aligned: Record<string, number[]>;
 }
 
+// Net return waterfall — gross→net decomposition for CABA apartments.
+
+export interface NetReturnComponent {
+  key: string;
+  label: string;
+  value_pct: number;        // signed
+  kind: 'positive' | 'negative';
+  source: string;
+  editable: boolean;
+}
+
+export interface NetReturnAppreciation {
+  median_pct: number;
+  ci_80_lower: number;
+  ci_80_upper: number;
+  source: string;
+}
+
+export interface NetReturnResponse {
+  segment: string;
+  barrio: string | null;
+  current_price_m2: number;
+  appreciation: NetReturnAppreciation;
+  annual_components: NetReturnComponent[];
+  transaction_round_trip_pct: number;    // negative; amortise over hold_years
+  default_hold_years: number;
+  timestamp: string;
+}
+
 export interface NarrativeResponse {
   status: 'ok' | 'unavailable' | 'error';
   narrative: string | null;

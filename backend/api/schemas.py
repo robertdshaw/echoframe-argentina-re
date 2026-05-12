@@ -332,6 +332,44 @@ class CommodityPricesResponse(BaseModel):
     timestamp: datetime = Field(..., description="Response timestamp")
 
 
+# Net return decomposition models
+
+class NetReturnComponent(BaseModel):
+    """A single line in the gross→net return waterfall."""
+    key: str = Field(..., description="Machine-readable component identifier")
+    label: str = Field(..., description="Human-readable component label")
+    value_pct: float = Field(..., description="Annual %-of-price contribution (signed)")
+    kind: str = Field(..., description="'positive' or 'negative' contribution")
+    source: str = Field(..., description="Origin of this number (model / market default / editable)")
+    editable: bool = Field(False, description="Frontend may let the user override this")
+
+
+class NetReturnAppreciation(BaseModel):
+    """The model's price-appreciation component, isolated so the waterfall can render its CI separately."""
+    median_pct: float = Field(..., description="Median annual %-appreciation from model")
+    ci_80_lower: float = Field(..., description="Lower bound of 80% CI on annual appreciation")
+    ci_80_upper: float = Field(..., description="Upper bound of 80% CI on annual appreciation")
+    source: str = Field("Bayesian ensemble (year-1 horizon)", description="Provenance")
+
+
+class NetReturnResponse(BaseModel):
+    """
+    Components of the net annual USD return on a CABA apartment hold.
+
+    The frontend composes the waterfall locally: net = appreciation.median
+    + sum(annual_components) − transaction_round_trip_pct / hold_years.
+    Doing the arithmetic client-side keeps the hold-period slider instant.
+    """
+    segment: str = Field("departamentos", description="Market segment")
+    barrio: Optional[str] = Field(None, description="Specific barrio if filtered, else aggregate CABA")
+    current_price_m2: float = Field(..., description="Current USD per m² (median of priced listings)")
+    appreciation: NetReturnAppreciation = Field(..., description="Model-driven price appreciation")
+    annual_components: List[NetReturnComponent] = Field(..., description="Fixed annual yield/cost lines")
+    transaction_round_trip_pct: float = Field(..., description="One-time round-trip transaction cost (negative); amortised over hold_years")
+    default_hold_years: float = Field(5.0, description="Default hold period for amortising transaction costs")
+    timestamp: datetime = Field(..., description="Response timestamp")
+
+
 # Scenario models
 
 class ScenarioParameters(BaseModel):

@@ -6,6 +6,7 @@ departamentos (Buenos Aires apartments) and campos (agricultural land).
 """
 
 import logging
+from datetime import datetime
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Query, Depends, Request
 from fastapi.responses import JSONResponse
@@ -13,10 +14,45 @@ from fastapi.responses import JSONResponse
 from .schemas import (
     ForecastResponse, ForecastSummaryResponse, HorizonForecast,
     ModelEstimate, BehavioralAdjustment, RegimeContext, TopSignal,
-    ModelMetadata, ConfidenceInterval, SummaryForecast
+    ModelMetadata, ConfidenceInterval, SummaryForecast,
+    NetReturnResponse, NetReturnAppreciation, NetReturnComponent,
 )
 from services.forecast_service import ForecastService
 from services.data_pipeline import DataPipeline
+
+
+# Standing Argentine CABA market defaults for the net-return decomposition.
+# Numbers are signed (positive = gain, negative = drag) and are %-of-price
+# per year, except `tx_round_trip_pct` which is a one-time round-trip cost
+# the frontend amortises over the user-selected hold period.
+#
+# Sources / rationale:
+#   gross_yield (4.6%) — Reporte Inmobiliario / Argenprop median CABA gross
+#       rental yield as of late 2025; range across barrios is ~3.5–6.0%.
+#   vacancy (-0.7%) — assumes ~6% time-on-market + small turnover/maintenance
+#       drag; consistent with ~10% of monthly rent in vacancy + ~5% in repairs.
+#   abl_tax (-0.8%) — CABA municipal ABL property tax; effective rate varies
+#       0.5–1.5% by valuación fiscal tier. 0.8% is a mid-tier median.
+#   expensas (-0.4%) — building common-area maintenance fee. Median CABA
+#       expensas ~$80–$150/m²/yr against ~$2,500/m² price → ~3–6% of rent
+#       but ~0.3–0.5% of price annually. Treated separately from vacancy.
+#   tx_round_trip (-7.0%) — buy: ~4% (ITI 1.5% + escribano ~1.5% + corredor
+#       ~3% but split). Sell: ~3% (corredor + ITI). Round-trip ≈ 7%.
+#   fx_friction (-0.4%) — round-trip MEP / blue spread; assumes investor
+#       converts ARS rental income to USD at MEP.
+#
+# These are *defaults*; the frontend marks editable ones so a sophisticated
+# user can override (e.g. an investor with a direct tenant might set vacancy
+# to 0%, or a long-term holder might lower expensas if they're embedded).
+_NET_RETURN_DEFAULTS: dict = {
+    "gross_yield_pct": 4.6,
+    "vacancy_pct": -0.7,
+    "abl_tax_pct": -0.8,
+    "expensas_pct": -0.4,
+    "fx_friction_pct": -0.4,
+    "tx_round_trip_pct": -7.0,
+    "default_hold_years": 5.0,
+}
 
 
 logger = logging.getLogger(__name__)
@@ -351,6 +387,95 @@ async def get_current_regime(
                 "transition_to_crisis": 0.10
             }
         )
+
+
+@router.get("/net-return/departamentos", response_model=NetReturnResponse)
+async def get_departamentos_net_return(
+    barrio: Optional[str] = Query(None, description="Specific CABA barrio; omit for aggregate"),
+    forecast_service: ForecastService = Depends(get_forecast_service),
+):
+    """
+    Net annual USD return decomposition for a CABA apartment hold.
+
+    Returns the year-1 model appreciation (with 80% CI) plus the standard
+    carrying-cost components (yield, vacancy, ABL, expensas, FX friction)
+    and the one-time round-trip transaction cost. The frontend amortises
+    transaction cost over a user-adjustable hold period so the slider can
+    re-render instantly without an API round-trip.
+
+    Net annual = appreciation.median + Σ annual_components
+                 + (transaction_round_trip_pct / hold_years)
+    """
+    try:
+        forecast_result = await forecast_service.generate_departamentos_forecast(
+            barrio=barrio,
+            year_horizons=[1],
+        )
+        year_1 = forecast_result.forecasts[1]["model_estimate"]
+
+        appreciation = NetReturnAppreciation(
+            median_pct=year_1["median_change_pct"],
+            ci_80_lower=year_1["ci_80"][0],
+            ci_80_upper=year_1["ci_80"][1],
+        )
+
+        components = [
+            NetReturnComponent(
+                key="gross_yield",
+                label="Gross rental yield",
+                value_pct=_NET_RETURN_DEFAULTS["gross_yield_pct"],
+                kind="positive",
+                source="CABA median (Reporte Inmobiliario / Argenprop)",
+                editable=False,
+            ),
+            NetReturnComponent(
+                key="vacancy",
+                label="Vacancy & maintenance",
+                value_pct=_NET_RETURN_DEFAULTS["vacancy_pct"],
+                kind="negative",
+                source="Industry default (~6% vacancy + repairs)",
+                editable=True,
+            ),
+            NetReturnComponent(
+                key="abl_tax",
+                label="Property tax (ABL)",
+                value_pct=_NET_RETURN_DEFAULTS["abl_tax_pct"],
+                kind="negative",
+                source="CABA municipal rate (mid-tier valuación)",
+                editable=False,
+            ),
+            NetReturnComponent(
+                key="expensas",
+                label="Expensas",
+                value_pct=_NET_RETURN_DEFAULTS["expensas_pct"],
+                kind="negative",
+                source="Listings sample median",
+                editable=True,
+            ),
+            NetReturnComponent(
+                key="fx_friction",
+                label="FX conversion friction",
+                value_pct=_NET_RETURN_DEFAULTS["fx_friction_pct"],
+                kind="negative",
+                source="Round-trip MEP spread",
+                editable=True,
+            ),
+        ]
+
+        return NetReturnResponse(
+            segment="departamentos",
+            barrio=barrio,
+            current_price_m2=forecast_result.current_price,
+            appreciation=appreciation,
+            annual_components=components,
+            transaction_round_trip_pct=_NET_RETURN_DEFAULTS["tx_round_trip_pct"],
+            default_hold_years=_NET_RETURN_DEFAULTS["default_hold_years"],
+            timestamp=datetime.utcnow(),
+        )
+
+    except Exception as e:
+        logger.error(f"Error in net-return decomposition: {e}")
+        raise HTTPException(status_code=500, detail=f"Net return calculation failed: {str(e)}")
 
 
 @router.get("/health")

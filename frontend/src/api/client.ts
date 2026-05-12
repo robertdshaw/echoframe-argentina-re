@@ -11,6 +11,7 @@ import type {
   ModelInsightsResponse,
   PropertyListingsResponse,
   NarrativeResponse,
+  NetReturnResponse,
 } from '../types';
 
 const baseURL =
@@ -59,6 +60,14 @@ export const forecastApi = {
   async getCurrentRegime(): Promise<RegimeContext> {
     const { data } = await apiClient.get<RegimeContext>(
       '/api/v1/forecast/regime/current',
+    );
+    return data;
+  },
+
+  async getNetReturnDepartamentos(barrio?: string): Promise<NetReturnResponse> {
+    const { data } = await apiClient.get<NetReturnResponse>(
+      '/api/v1/forecast/net-return/departamentos',
+      { params: { barrio } },
     );
     return data;
   },
