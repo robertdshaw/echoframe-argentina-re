@@ -14,6 +14,7 @@ import type {
   NetReturnResponse,
   BarrioRankingsResponse,
   EntryQualityResponse,
+  CanonicalScenariosResponse,
 } from '../types';
 
 const baseURL =
@@ -89,6 +90,13 @@ export const forecastApi = {
   async getEntryQuality(): Promise<EntryQualityResponse> {
     const { data } = await apiClient.get<EntryQualityResponse>(
       '/api/v1/forecast/timing/entry-quality',
+    );
+    return data;
+  },
+
+  async getCanonicalScenarios(): Promise<CanonicalScenariosResponse> {
+    const { data } = await apiClient.get<CanonicalScenariosResponse>(
+      '/api/v1/forecast/scenarios/canonical/departamentos',
     );
     return data;
   },

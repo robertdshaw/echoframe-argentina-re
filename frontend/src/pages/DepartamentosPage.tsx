@@ -12,6 +12,7 @@ import NetReturnWaterfall from '../components/forecast/NetReturnWaterfall';
 import HurdleRateBar from '../components/forecast/HurdleRateBar';
 import BarrioForecastPanel from '../components/forecast/BarrioForecastPanel';
 import TimingTriggerPanel from '../components/forecast/TimingTriggerPanel';
+import ScenarioImpactPanel from '../components/forecast/ScenarioImpactPanel';
 import EvidenceDrawer from '../components/common/EvidenceDrawer';
 import RegimeIndicator from '../components/regime/RegimeIndicator';
 import RegimeHistoryStrip from '../components/regime/RegimeHistoryStrip';
@@ -153,10 +154,23 @@ const DepartamentosPage = () => {
         </ErrorBoundary>
       </section>
 
-      {/* §04 VERSUS ALTERNATIVES — hurdle-rate comparison */}
+      {/* §04 WHAT COULD GO WRONG — three canonical scenarios */}
       <section>
         <SectionLabel
           number="04"
+          eyebrow="What could go wrong"
+          title="Three canonical 12-month scenarios"
+          sub="Base case from the model posterior; FX-shock impact calibrated to empirical drawdowns in past brecha-spike episodes; regime crisis from the HMM crisis-conditional prior."
+        />
+        <ErrorBoundary fallbackTitle="Scenarios unavailable">
+          <ScenarioImpactPanel />
+        </ErrorBoundary>
+      </section>
+
+      {/* §05 VERSUS ALTERNATIVES — hurdle-rate comparison */}
+      <section>
+        <SectionLabel
+          number="05"
           eyebrow="Versus alternatives"
           title="Hurdle-rate comparison"
           sub="Where the apartment thesis sits against passive USD alternatives. The right framing is 'Treasuries plus optionality on Argentine normalisation,' not 'equity beating.'"
@@ -166,10 +180,10 @@ const DepartamentosPage = () => {
         </ErrorBoundary>
       </section>
 
-      {/* §05 GEOGRAPHY — sampled listings map */}
+      {/* §06 GEOGRAPHY — sampled listings map */}
       <section>
         <SectionLabel
-          number="05"
+          number="06"
           eyebrow="Geography"
           title="Listings across CABA"
           sub="Sampled apartments with real coordinates. Color = price/m² band, circle size ∝ surface."
@@ -179,10 +193,10 @@ const DepartamentosPage = () => {
         </ErrorBoundary>
       </section>
 
-      {/* §06 SIGNALS — denoised news driving the call */}
+      {/* §07 SIGNALS — denoised news driving the call */}
       <section>
         <SectionLabel
-          number="06"
+          number="07"
           eyebrow="News intelligence"
           title="Signals driving the current forecast"
           sub="Live Spanish-language news, classified by impact direction and magnitude. Each surviving headline carries a provenance tag naming the section it influences."

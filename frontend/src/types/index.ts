@@ -283,6 +283,26 @@ export interface HmmDiagnostics {
   state_means_aligned: Record<string, number[]>;
 }
 
+// Canonical scenarios — base / FX shock / regime crisis with probability + band.
+
+export interface ScenarioEntry {
+  key: string;
+  label: string;
+  probability: number;
+  median_pct: number;
+  band_lower_pct: number;
+  band_upper_pct: number;
+  description: string;
+  historical_analogue?: string | null;
+  source: string;
+}
+
+export interface CanonicalScenariosResponse {
+  scenarios: ScenarioEntry[];
+  current_price_m2: number;
+  timestamp: string;
+}
+
 // Timing trigger panel — 4 named triggers + composite 0-10 entry-quality gauge.
 
 export interface TimingTriggerState {

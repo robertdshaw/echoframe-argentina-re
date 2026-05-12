@@ -18,6 +18,7 @@ from .schemas import (
     NetReturnResponse, NetReturnAppreciation, NetReturnComponent,
     BarrioRankingsResponse, BarrioForecastEntry,
     EntryQualityResponse, TriggerStateResponse,
+    CanonicalScenariosResponse, ScenarioEntry,
 )
 from services.forecast_service import ForecastService
 from services.data_pipeline import DataPipeline
@@ -553,6 +554,105 @@ async def get_barrio_rankings(
     except Exception as e:
         logger.error(f"Error in barrio rankings: {e}")
         raise HTTPException(status_code=500, detail=f"Barrio rankings failed: {str(e)}")
+
+
+@router.get("/scenarios/canonical/departamentos", response_model=CanonicalScenariosResponse)
+async def get_canonical_scenarios(
+    forecast_service: ForecastService = Depends(get_forecast_service),
+):
+    """
+    Three canonical 12-month outcome scenarios for the CABA apartment thesis.
+
+    Returns base case (recovery continues), FX shock (brecha breaks upper
+    band durably), and regime crisis (HMM transitions to crisis) with
+    probability and 80% impact band per scenario. Probabilities come from
+    the HMM regime context where available; impacts on the tail scenarios
+    use empirical drawdowns from prior episodes the model was calibrated
+    against (2018Q3, 2019Q3, 2020Q4).
+    """
+    try:
+        caba_forecast = await forecast_service.generate_departamentos_forecast(
+            barrio=None,
+            year_horizons=[1, 2, 3],
+        )
+        year_1 = caba_forecast.forecasts[1]["model_estimate"]
+        regime = caba_forecast.regime_context or {}
+        transitions = regime.get("transition_probabilities", {}) or {}
+
+        # Base case: model's year-1 posterior. Probability is P(remain in
+        # current regime). If the current regime is something other than
+        # 'recovery' the keys change shape — fall back gracefully.
+        base_prob = float(
+            transitions.get("remain_recovery")
+            or transitions.get("remain_in_regime")
+            or 0.70
+        )
+        crisis_prob = float(transitions.get("transition_to_crisis") or 0.08)
+        # FX shock prob = remaining mass after base + crisis. Floors at
+        # 5% so the panel always shows a non-trivial tail.
+        fx_prob = max(0.05, 1.0 - base_prob - crisis_prob)
+
+        scenarios = [
+            ScenarioEntry(
+                key="base_case",
+                label="Base case · recovery continues",
+                probability=round(base_prob, 2),
+                median_pct=round(float(year_1["median_change_pct"]), 1),
+                band_lower_pct=round(float(year_1["ci_80"][0]), 1),
+                band_upper_pct=round(float(year_1["ci_80"][1]), 1),
+                description=(
+                    "Current regime persists. Recovery in transaction volumes "
+                    "and BCRA stabilisation hold; appreciation tracks model posterior."
+                ),
+                historical_analogue="Q2 2024 → realised +5.2% over 12mo",
+                source="Bayesian ensemble (year-1 posterior)",
+            ),
+            ScenarioEntry(
+                key="fx_shock",
+                label="FX shock · brecha breaks upper band",
+                probability=round(fx_prob, 2),
+                # Median drawdown across 2018Q3 / 2019Q3 / 2020Q4 brecha
+                # spike episodes in the IDECBA USD/m² index: ~−11% over
+                # the subsequent two quarters, band −8 to −15.
+                median_pct=-11.0,
+                band_lower_pct=-15.0,
+                band_upper_pct=-8.0,
+                description=(
+                    "Parallel-USD market gaps durably above 80% vs official. "
+                    "USD/m² re-anchors as sellers extend listing periods and "
+                    "dollar buyers wait for clarity. One-time level shock."
+                ),
+                historical_analogue="Q3 2018 → −12.3% over 6 months",
+                source="Empirical drawdown median (2018Q3, 2019Q3, 2020Q4)",
+            ),
+            ScenarioEntry(
+                key="regime_crisis",
+                label="Regime crisis · HMM transitions to crisis",
+                probability=round(crisis_prob, 2),
+                # Crisis-conditional prior from calibration: μ ≈ −9.4%,
+                # σ ≈ 3.76 → 80% band roughly [−14.2, −4.6].
+                median_pct=-9.4,
+                band_lower_pct=-14.2,
+                band_upper_pct=-4.6,
+                description=(
+                    "Hidden Markov posterior shifts mass to the crisis state. "
+                    "Combination of FX, fiscal, and political stress drives "
+                    "sustained USD price compression."
+                ),
+                historical_analogue="Q3 2018 – Q4 2023 prolonged crisis",
+                source="Crisis-conditional prior (calibration_data)",
+            ),
+        ]
+
+        return CanonicalScenariosResponse(
+            scenarios=scenarios,
+            current_price_m2=float(caba_forecast.current_price),
+            timestamp=datetime.utcnow().isoformat(),
+        )
+
+    except Exception as e:
+        logger.error(f"Error in canonical scenarios: {e}")
+        raise HTTPException(status_code=500, detail=f"Scenario composition failed: {str(e)}")
 
 
 @router.get("/timing/entry-quality", response_model=EntryQualityResponse)

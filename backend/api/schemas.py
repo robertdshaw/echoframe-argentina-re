@@ -336,6 +336,28 @@ class CommodityPricesResponse(BaseModel):
     timestamp: datetime = Field(..., description="Response timestamp")
 
 
+# Canonical-scenarios models (what-could-go-wrong panel)
+
+class ScenarioEntry(BaseModel):
+    """A single 12-month outcome scenario with probability and impact band."""
+    key: str = Field(..., description="Machine-readable identifier")
+    label: str = Field(..., description="Display name (e.g. 'Base case')")
+    probability: float = Field(..., ge=0, le=1, description="Prior probability of this scenario over 12 months")
+    median_pct: float = Field(..., description="Median 12-month USD %-impact in this scenario")
+    band_lower_pct: float = Field(..., description="80% band lower bound")
+    band_upper_pct: float = Field(..., description="80% band upper bound")
+    description: str = Field(..., description="One-line scenario narrative")
+    historical_analogue: Optional[str] = Field(None, description="Last historical episode matching this scenario, if any")
+    source: str = Field(..., description="Where the parameters come from (model / empirical / regime prior)")
+
+
+class CanonicalScenariosResponse(BaseModel):
+    """The three canonical 12-month scenarios for the CABA apartment thesis."""
+    scenarios: List[ScenarioEntry] = Field(..., description="Base / FX-shock / regime-crisis, in descending probability")
+    current_price_m2: float = Field(..., description="Current median USD/m² for the projected_price calculation")
+    timestamp: str = Field(..., description="Response timestamp")
+
+
 # Timing trigger / entry-quality models
 
 class TriggerStateResponse(BaseModel):
