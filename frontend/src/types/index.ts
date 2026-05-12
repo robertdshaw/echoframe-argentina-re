@@ -283,6 +283,27 @@ export interface HmmDiagnostics {
   state_means_aligned: Record<string, number[]>;
 }
 
+// Timing trigger panel — 4 named triggers + composite 0-10 entry-quality gauge.
+
+export interface TimingTriggerState {
+  key: string;
+  name: string;
+  status: 'active' | 'inactive' | string;
+  score: number;
+  observed: string;
+  threshold: string;
+  source: string;
+  note?: string | null;
+}
+
+export interface EntryQualityResponse {
+  score_out_of_10: number;
+  triggers: TimingTriggerState[];
+  historical_analogy_period: string;
+  historical_analogy_realised_pct: number;
+  timestamp: string;
+}
+
 // Barrio-level hierarchical forecast — partial-pooled per-barrio posterior.
 
 export interface BarrioForecastEntry {

@@ -13,15 +13,21 @@ import type {
   NarrativeResponse,
   NetReturnResponse,
   BarrioRankingsResponse,
+  EntryQualityResponse,
 } from '../types';
 
 const baseURL =
   (import.meta as unknown as { env: Record<string, string | undefined> }).env
     .VITE_API_URL || 'http://localhost:8000';
 
+// Forecast + barrio-rankings + net-return endpoints chain through the
+// model ensemble and an Argentine-data pipeline that can pull macro,
+// news, and listings simultaneously. On a cold Render free-tier start
+// the first request legitimately takes 30–50s before the in-memory
+// cache warms; 30s was too tight and produced spurious timeout errors.
 export const apiClient = axios.create({
   baseURL,
-  timeout: 30000,
+  timeout: 60000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -76,6 +82,13 @@ export const forecastApi = {
   async getBarrioRankings(): Promise<BarrioRankingsResponse> {
     const { data } = await apiClient.get<BarrioRankingsResponse>(
       '/api/v1/forecast/barrio-rankings/departamentos',
+    );
+    return data;
+  },
+
+  async getEntryQuality(): Promise<EntryQualityResponse> {
+    const { data } = await apiClient.get<EntryQualityResponse>(
+      '/api/v1/forecast/timing/entry-quality',
     );
     return data;
   },

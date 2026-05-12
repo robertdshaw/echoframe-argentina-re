@@ -336,6 +336,29 @@ class CommodityPricesResponse(BaseModel):
     timestamp: datetime = Field(..., description="Response timestamp")
 
 
+# Timing trigger / entry-quality models
+
+class TriggerStateResponse(BaseModel):
+    """One named entry-quality trigger."""
+    key: str = Field(..., description="Machine-readable identifier")
+    name: str = Field(..., description="Display name")
+    status: str = Field(..., description="'active' or 'inactive'")
+    score: float = Field(..., ge=0, le=1, description="Score 0-1 contributing to the gauge")
+    observed: str = Field(..., description="Current observation (human-readable)")
+    threshold: str = Field(..., description="Threshold for active state (human-readable)")
+    source: str = Field(..., description="Data origin")
+    note: Optional[str] = Field(None, description="Optional caveat")
+
+
+class EntryQualityResponse(BaseModel):
+    """Composite entry-quality reading with per-trigger breakdown."""
+    score_out_of_10: float = Field(..., ge=0, le=10, description="Composite 0-10 entry-quality gauge")
+    triggers: List[TriggerStateResponse] = Field(..., description="Individual trigger evaluations")
+    historical_analogy_period: str = Field(..., description="Last historical period matching the current configuration")
+    historical_analogy_realised_pct: float = Field(..., description="12-month realised return after the analogy period")
+    timestamp: str = Field(..., description="Response timestamp")
+
+
 # Barrio-level hierarchical forecast models
 
 class BarrioForecastEntry(BaseModel):

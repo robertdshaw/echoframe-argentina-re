@@ -17,9 +17,11 @@ from .schemas import (
     ModelMetadata, ConfidenceInterval, SummaryForecast,
     NetReturnResponse, NetReturnAppreciation, NetReturnComponent,
     BarrioRankingsResponse, BarrioForecastEntry,
+    EntryQualityResponse, TriggerStateResponse,
 )
 from services.forecast_service import ForecastService
 from services.data_pipeline import DataPipeline
+from services.timing_signals import TimingSignals
 from models.bayesian_barrios import BarrioForecaster, THIN_DATA_THRESHOLD
 from data.properati_scraper import _coords_for_barrio
 
@@ -410,9 +412,14 @@ async def get_departamentos_net_return(
                  + (transaction_round_trip_pct / hold_years)
     """
     try:
+        # Request the full [1,2,3] horizon set so this endpoint's call hits
+        # the same forecast_service cache slot as the city ExecutiveCard's
+        # call. Year 1 is the only horizon we read; the extra two are
+        # cheap given the city forecast has already paid the data-pipeline
+        # cost during the same page load.
         forecast_result = await forecast_service.generate_departamentos_forecast(
             barrio=barrio,
-            year_horizons=[1],
+            year_horizons=[1, 2, 3],
         )
         year_1 = forecast_result.forecasts[1]["model_estimate"]
 
@@ -496,9 +503,11 @@ async def get_barrio_rankings(
     tables without another API call.
     """
     try:
+        # Align cache key with the city ExecutiveCard call ([1,2,3]) so
+        # both calls share one underlying forecast_service computation.
         caba_forecast = await forecast_service.generate_departamentos_forecast(
             barrio=None,
-            year_horizons=[1],
+            year_horizons=[1, 2, 3],
         )
         year_1 = caba_forecast.forecasts[1]["model_estimate"]
         caba_mu = float(year_1["median_change_pct"])
@@ -544,6 +553,32 @@ async def get_barrio_rankings(
     except Exception as e:
         logger.error(f"Error in barrio rankings: {e}")
         raise HTTPException(status_code=500, detail=f"Barrio rankings failed: {str(e)}")
+
+
+@router.get("/timing/entry-quality", response_model=EntryQualityResponse)
+async def get_entry_quality(request: Request):
+    """
+    Composite 0-10 entry-quality reading with per-trigger breakdown.
+
+    The four triggers (brecha compression, inventory accumulation, BCRA
+    reserves trajectory, mortgage credit revival) each evaluate against
+    a documented threshold on current observed state. Scores roll up
+    into the gauge as their mean × 10.
+    """
+    try:
+        dp = getattr(request.app.state, "data_pipeline", None) or DataPipeline()
+        signals = TimingSignals(data_pipeline=dp)
+        reading = await signals.get_entry_quality()
+        return EntryQualityResponse(
+            score_out_of_10=round(reading.score_out_of_10, 1),
+            triggers=[TriggerStateResponse(**t.as_dict()) for t in reading.triggers],
+            historical_analogy_period=reading.historical_analogy_period,
+            historical_analogy_realised_pct=reading.historical_analogy_realised_pct,
+            timestamp=reading.timestamp,
+        )
+    except Exception as e:
+        logger.error(f"Error computing entry quality: {e}")
+        raise HTTPException(status_code=500, detail=f"Entry-quality computation failed: {str(e)}")
 
 
 @router.get("/health")
