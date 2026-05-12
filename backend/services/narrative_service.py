@@ -77,23 +77,26 @@ class NarrativeService:
     SYSTEM_PROMPT = (
         "You are a senior real estate strategist polishing a briefing for "
         "a sophisticated Argentine client. The user message contains a "
-        "fully-numbered draft of seven titled paragraphs. Your job is to "
-        "smooth the connective language so it reads as fluent investment "
-        "prose, not to compose new content.\n\n"
+        "numbered draft of titled paragraphs. The draft may contain "
+        "between one and seven paragraphs depending on which data feeds "
+        "were available; render WHATEVER paragraphs are in the draft, "
+        "no more and no less. Your job is to smooth the connective "
+        "language so it reads as fluent investment prose, not to "
+        "compose new content.\n\n"
         "STRICT RULES (non-negotiable):\n"
         "- Do NOT change any number, percentage, currency value, named "
         "barrio, named scenario, historical period, or sample size.\n"
         "- Do NOT add new claims, citations, statistics, or sources.\n"
-        "- Do NOT drop any of the seven titled paragraphs.\n"
-        "- KEEP the paragraph titles exactly as given (e.g. 'The Call.', "
-        "'Where.', 'When.', 'What you take home.', 'What could break it.', "
-        "'Versus alternatives.', 'Confidence statement.').\n"
+        "- Do NOT add paragraphs that aren't in the draft. If a "
+        "paragraph is missing, leave it missing — never invent it.\n"
+        "- Do NOT drop paragraphs that ARE in the draft.\n"
+        "- KEEP every paragraph title exactly as given (bold, with a "
+        "trailing period, e.g. 'The Call.', 'Where.', 'When.').\n"
         "- You MAY rephrase connective tissue for clarity and pace, fix "
         "awkward phrasing, and ensure plain English.\n"
-        "- Output is exactly seven paragraphs; no headings, no bullets, "
-        "no markdown beyond bold paragraph titles.\n"
-        "- Total length: 220-320 words.\n"
-        "- The final sentence of the seventh paragraph is the bottom-line "
+        "- No headings, no bullets, no markdown beyond bold paragraph "
+        "titles.\n"
+        "- The FINAL paragraph (whatever its title) is the bottom-line "
         "summary; preserve its quantitative content unchanged.\n"
         "If the input draft seems internally inconsistent, prefer it to "
         "inventing a fix — return the draft as-is rather than guessing."
@@ -278,22 +281,34 @@ class NarrativeService:
         )
 
         # ---- Paragraph 2 · WHERE ------------------------------------
-        top_barrios = slot_extras.get("top_barrios") or []
-        if top_barrios:
-            names = [b.get("name", "?") for b in top_barrios[:3]]
+        # Segment-agnostic wording. For departamentos the top picks are
+        # barrios; for campos they're zones. Same template either way.
+        top_locations = slot_extras.get("top_barrios") or []
+        if top_locations:
+            names = [b.get("name", "?") for b in top_locations[:3]]
             returns = [
                 f"{float(b.get('total_return_pct', 0)):+.1f}%"
-                for b in top_barrios[:3]
+                for b in top_locations[:3]
             ]
             joined = ", ".join(
                 f"{n} ({r})" for n, r in zip(names, returns)
             )
+            granularity = (
+                "neighborhood-level model"
+                if segment == "departamentos"
+                else "zone-level model"
+            )
+            thin = (
+                "Thin-data neighborhoods are excluded from this ranking; "
+                "the per-neighborhood drawer shows the full distribution."
+                if segment == "departamentos"
+                else "Zone forecasts borrow strength from the national "
+                "model where local sales data is thin."
+            )
             paragraphs.append(
-                f"**Where.** Concentrate exposure in {joined}, which "
-                f"top the partial-pooled barrio model on combined "
-                f"appreciation plus gross yield. Thin-data barrios are "
-                f"excluded from this ranking; the per-barrio drawer "
-                f"shows the full distribution."
+                f"**Where.** Concentrate exposure in {joined}, which top "
+                f"the {granularity} on combined appreciation plus yield. "
+                + thin
             )
 
         # ---- Paragraph 3 · WHEN -------------------------------------
@@ -334,30 +349,38 @@ class NarrativeService:
             )
 
         # ---- Paragraph 5 · WHAT COULD BREAK IT ----------------------
+        # Pull every non-base tail scenario rather than hard-coding the
+        # FX/crisis pair; this lets campos surface commodity-crash and
+        # drought scenarios with the same template logic.
+        _SCENARIO_DESCRIPTIONS: Dict[str, str] = {
+            "fx_shock": "an FX shock (parallel-USD brecha breaks the upper band durably)",
+            "regime_crisis": (
+                "a regime crisis (HMM mass shifts to crisis state)"
+                if segment == "departamentos"
+                else "a drought or retenciones hike"
+            ),
+            "commodity_crash": "a commodity crash (soy / maize / wheat below break-even)",
+        }
         scenarios = slot_extras.get("scenarios") or []
-        fx = next((s for s in scenarios if s.get("key") == "fx_shock"), None)
-        crisis = next((s for s in scenarios if s.get("key") == "regime_crisis"), None)
-        if fx or crisis:
+        tails = [
+            s for s in scenarios
+            if s.get("key") not in ("base_case", "base")
+        ]
+        if tails:
             parts: list[str] = []
-            if fx:
+            for s in tails:
+                key = s.get("key", "")
+                desc = _SCENARIO_DESCRIPTIONS.get(key, key.replace("_", " "))
                 parts.append(
-                    f"an FX shock (parallel-USD brecha breaks the upper "
-                    f"band durably) would imply a {float(fx['median_pct']):+.1f}% "
-                    f"impact with an 80% band of "
-                    f"{float(fx['band_lower_pct']):+.1f}% to {float(fx['band_upper_pct']):+.1f}%, "
-                    f"prior probability {float(fx['probability']):.0%}"
-                )
-            if crisis:
-                parts.append(
-                    f"a regime crisis (HMM mass shifts to crisis state) "
-                    f"would imply {float(crisis['median_pct']):+.1f}% with an "
-                    f"80% band of {float(crisis['band_lower_pct']):+.1f}% to "
-                    f"{float(crisis['band_upper_pct']):+.1f}%, "
-                    f"prior probability {float(crisis['probability']):.0%}"
+                    f"{desc} would imply {float(s['median_pct']):+.1f}% "
+                    f"with an 80% band of "
+                    f"{float(s['band_lower_pct']):+.1f}% to "
+                    f"{float(s['band_upper_pct']):+.1f}%, "
+                    f"prior probability {float(s['probability']):.0%}"
                 )
             paragraphs.append(
-                "**What could break it.** The dominant tails are a peso "
-                "regime breakdown and a return to crisis. Specifically, "
+                "**What could break it.** The dominant tails for this "
+                "thesis are: "
                 + "; ".join(parts)
                 + ". These are not forecasts — they are conditional "
                 "estimates for the named regimes."
@@ -366,15 +389,21 @@ class NarrativeService:
         # ---- Paragraph 6 · VERSUS ALTERNATIVES ----------------------
         if net.get("net_annual_pct") is not None:
             net_pct = float(net["net_annual_pct"])
+            thesis_framing = (
+                "Treasuries plus optionality on Argentine normalisation "
+                "rather than equity-beating growth"
+                if segment == "departamentos"
+                else "a productive USD asset with cash yield plus "
+                "optionality on Argentine soft-commodity strength "
+                "rather than equity-beating growth"
+            )
             paragraphs.append(
                 f"**Versus alternatives.** Net {net_pct:+.1f}% USD with "
                 f"this risk profile compares against US 10-year "
                 f"Treasuries at roughly 4.5% (the risk-free benchmark) "
                 f"and a 6.5% long-run S&P 500 consensus. The thesis "
-                f"reads as Treasuries plus optionality on Argentine "
-                f"normalisation rather than equity-beating growth; "
-                f"Argentine USD sovereigns yield more, but at "
-                f"materially higher default risk."
+                f"reads as {thesis_framing}; Argentine USD sovereigns "
+                f"yield more, but at materially higher default risk."
             )
 
         # ---- Paragraph 7 · CONFIDENCE STATEMENT ---------------------

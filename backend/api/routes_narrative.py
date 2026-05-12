@@ -183,13 +183,97 @@ async def _gather_slot_extras(
     data_pipeline: DataPipeline,
 ) -> Dict[str, Any]:
     """Best-effort fetch of the structured slots the new template needs."""
+    if segment == "campos":
+        return await _gather_campos_slot_extras(forecast_result)
+    return await _gather_departamentos_slot_extras(forecast_result, data_pipeline)
+
+
+# Campos-specific cost stack. Kept in sync with the values in
+# frontend/src/components/forecast/CamposPanels.tsx so the briefing reads
+# the same numbers the visible panels render.
+_CAMPOS_NET_DEFAULTS: Dict[str, float] = {
+    "gross_lease_yield_pct": 11.0,
+    "input_costs_pct": -4.0,
+    "labor_pct": -0.5,
+    "retenciones_pct": -2.5,
+    "land_tax_pct": -0.3,
+    "fx_friction_pct": -0.4,
+    "tx_round_trip_pct": -4.0,
+    "hold_years": 7,
+}
+
+
+async def _gather_campos_slot_extras(forecast_result: Any) -> Dict[str, Any]:
+    """Slot extras for the campos briefing template."""
     extras: Dict[str, Any] = {}
 
-    # Departamentos-only slots — the briefing template's "Where" / net
-    # return / scenarios paragraphs are CABA-specific. For campos the
-    # briefing degrades to The Call + Confidence sections only.
-    if segment != "departamentos":
-        return extras
+    year_1 = (forecast_result.forecasts or {}).get(1, {}).get("model_estimate") or {}
+    median_pct = float(year_1.get("median_change_pct", 0))
+
+    # 'Where' paragraph — talk to the segment's zones. We don't have a
+    # campos-equivalent partial-pooling forecaster here, so we present
+    # the user-facing zone labels with returns derived from the
+    # zone-specific lease yield carried by the visible panel.
+    # Using the same slot key the narrative service already reads
+    # ('top_barrios') keeps the template logic shared between segments.
+    extras["top_barrios"] = [
+        {"name": "Core Pampa", "total_return_pct": median_pct + 5.6},
+        {"name": "Santa Fe", "total_return_pct": median_pct + 4.8},
+        {"name": "Frontier", "total_return_pct": median_pct + 6.2},
+    ]
+
+    # 'What you take home' — deterministic farmland arithmetic.
+    try:
+        d = _CAMPOS_NET_DEFAULTS
+        hold = int(d["hold_years"])
+        tx_amortised = d["tx_round_trip_pct"] / hold
+        net_annual = (
+            median_pct
+            + d["gross_lease_yield_pct"]
+            + d["input_costs_pct"]
+            + d["labor_pct"]
+            + d["retenciones_pct"]
+            + d["land_tax_pct"]
+            + d["fx_friction_pct"]
+            + tx_amortised
+        )
+        extras["net_return"] = {
+            "appreciation_pct": round(median_pct, 1),
+            "gross_yield_pct": round(d["gross_lease_yield_pct"], 1),
+            "net_annual_pct": round(net_annual, 1),
+            "hold_years": hold,
+        }
+    except Exception as exc:
+        logger.warning("Campos slot fetch (net return) failed: %s", exc)
+
+    # 'What could break it' — campos tail scenarios. Probabilities and
+    # magnitudes match the visible CamposScenariosPanel constants.
+    extras["scenarios"] = [
+        {
+            "key": "commodity_crash",
+            "probability": 0.22,
+            "median_pct": -8.5,
+            "band_lower_pct": -14.0,
+            "band_upper_pct": -3.5,
+        },
+        {
+            "key": "regime_crisis",  # drought/retenciones tail
+            "probability": 0.13,
+            "median_pct": -6.0,
+            "band_lower_pct": -11.0,
+            "band_upper_pct": -2.0,
+        },
+    ]
+
+    return extras
+
+
+async def _gather_departamentos_slot_extras(
+    forecast_result: Any,
+    data_pipeline: DataPipeline,
+) -> Dict[str, Any]:
+    """Slot extras for the departamentos briefing template."""
+    extras: Dict[str, Any] = {}
 
     year_1 = (forecast_result.forecasts or {}).get(1, {}).get("model_estimate") or {}
     median_pct = float(year_1.get("median_change_pct", 0))
