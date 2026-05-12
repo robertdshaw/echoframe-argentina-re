@@ -1,6 +1,7 @@
 import type { ForecastResponse } from '../../types';
 import { formatPct, formatProb, formatUsd } from '../../utils/formatters';
 import { applyBoomAdjustment, shouldWidenForBoom } from '../../utils/boomAdjust';
+import { regimeColor } from '../../utils/colors';
 
 interface Props {
   forecast: ForecastResponse;
@@ -98,15 +99,18 @@ const ExecutiveCard = ({ forecast, segment, location }: Props) => {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 8,
-              padding: '4px 10px',
-              background: 'rgba(232,93,38,0.14)',
-              border: '1px solid rgba(232,93,38,0.32)',
+              padding: '5px 12px',
+              background: 'rgba(167, 195, 255, 0.14)',
+              border: '1px solid rgba(167, 195, 255, 0.32)',
               borderRadius: 999,
+              boxShadow:
+                'inset 0 1px 0 rgba(255,255,255,0.10), 0 2px 8px rgba(74,59,143,0.18)',
+              backdropFilter: 'blur(6px)',
               fontSize: 10,
               fontWeight: 700,
               letterSpacing: 0.16,
               textTransform: 'uppercase',
-              color: '#FFB199',
+              color: '#C7D8FF',
               marginBottom: 18,
             }}
           >
@@ -115,7 +119,8 @@ const ExecutiveCard = ({ forecast, segment, location }: Props) => {
                 width: 6,
                 height: 6,
                 borderRadius: '50%',
-                background: '#E85D26',
+                background: '#7AA7FF',
+                boxShadow: '0 0 8px rgba(122,167,255,0.7)',
               }}
             />
             12-month outlook
@@ -282,7 +287,7 @@ const ExecutiveCard = ({ forecast, segment, location }: Props) => {
               label="Regime"
               value={forecast.regime_context.current.toUpperCase()}
               sub={`${formatProb(forecast.regime_context.confidence)} confidence`}
-              accent="#FFB199"
+              accent={regimeColor(forecast.regime_context.current)}
             />
           </div>
         </div>
