@@ -518,5 +518,57 @@
     "has_irrigation": false,
     "latitude": -45.5889,
     "longitude": -69.0735
+  },
+  {
+    "id": "campo_041",
+    "zone": "core_pampa",
+    "province": "Buenos Aires",
+    "partido": "San Antonio de Areco",
+    "price_usd_per_ha": 18500,
+    "hectares": 240,
+    "use_type": "agricultural",
+    "soil_quality": "premium",
+    "has_irrigation": false,
+    "latitude": -34.2483,
+    "longitude": -59.4713
+  },
+  {
+    "id": "campo_042",
+    "zone": "core_pampa",
+    "province": "Buenos Aires",
+    "partido": "San Antonio de Areco",
+    "price_usd_per_ha": 21000,
+    "hectares": 165,
+    "use_type": "mixed",
+    "soil_quality": "premium",
+    "has_irrigation": false,
+    "latitude": -34.2156,
+    "longitude": -59.5028
+  },
+  {
+    "id": "campo_043",
+    "zone": "core_pampa",
+    "province": "Buenos Aires",
+    "partido": "San Antonio de Areco",
+    "price_usd_per_ha": 17200,
+    "hectares": 410,
+    "use_type": "livestock",
+    "soil_quality": "good",
+    "has_irrigation": false,
+    "latitude": -34.2784,
+    "longitude": -59.4421
+  },
+  {
+    "id": "campo_044",
+    "zone": "core_pampa",
+    "province": "Buenos Aires",
+    "partido": "San Antonio de Areco",
+    "price_usd_per_ha": 22500,
+    "hectares": 95,
+    "use_type": "mixed",
+    "soil_quality": "premium",
+    "has_irrigation": true,
+    "latitude": -34.2589,
+    "longitude": -59.4895
   }
 ]
