@@ -9,6 +9,7 @@ import ForecastCard from '../components/forecast/ForecastCard';
 import ProbabilityGauge from '../components/forecast/ProbabilityGauge';
 import HorizonSelector from '../components/forecast/HorizonSelector';
 import NetReturnWaterfall from '../components/forecast/NetReturnWaterfall';
+import HurdleRateBar from '../components/forecast/HurdleRateBar';
 import RegimeIndicator from '../components/regime/RegimeIndicator';
 import RegimeHistoryStrip from '../components/regime/RegimeHistoryStrip';
 import ModelAccuracyPanel from '../components/model/ModelAccuracyPanel';
@@ -244,11 +245,24 @@ const DepartamentosPage = () => {
         </ErrorBoundary>
       </section>
 
-      {/* 5. GEOSPATIAL — map handles its own loading state internally,
-              but if forecast errors, fall back to a clean skeleton. */}
+      {/* 5. HURDLE-RATE COMPARISON — answers "versus what?" */}
       <section>
         <SectionLabel
           number="04"
+          eyebrow="Versus alternatives"
+          title="Hurdle-rate comparison"
+          sub="Where the apartment thesis sits against passive USD alternatives. The right framing is 'Treasuries plus optionality on Argentine normalisation,' not 'equity beating.'"
+        />
+        <ErrorBoundary fallbackTitle="Hurdle comparison unavailable">
+          <HurdleRateBar barrio={barrio || undefined} />
+        </ErrorBoundary>
+      </section>
+
+      {/* 6. GEOSPATIAL — map handles its own loading state internally,
+              but if forecast errors, fall back to a clean skeleton. */}
+      <section>
+        <SectionLabel
+          number="05"
           eyebrow="Geography"
           title="Listings across CABA"
           sub="Sampled apartments with real coordinates. Color = price/m² band, circle size ∝ surface."
@@ -258,10 +272,10 @@ const DepartamentosPage = () => {
         </ErrorBoundary>
       </section>
 
-      {/* 6. MODEL VALIDATION */}
+      {/* 7. MODEL VALIDATION */}
       <section>
         <SectionLabel
-          number="05"
+          number="06"
           eyebrow="Model validation"
           title="Historical track record"
           sub="Walk-forward leave-one-out backtest across 29 anchor quarters. Calibration, Brier, MAE vs naive."
@@ -314,10 +328,10 @@ const DepartamentosPage = () => {
         </ErrorBoundary>
       </section>
 
-      {/* 7. REGIME */}
+      {/* 8. REGIME */}
       <section>
         <SectionLabel
-          number="06"
+          number="07"
           eyebrow="Macro regime"
           title="What state is the market in?"
           sub="HMM posterior over Crisis / Recovery / Boom, with transition probabilities forward 4Q."
@@ -331,10 +345,10 @@ const DepartamentosPage = () => {
         </ErrorBoundary>
       </section>
 
-      {/* 8. SIGNALS */}
+      {/* 9. SIGNALS */}
       <section>
         <SectionLabel
-          number="07"
+          number="08"
           eyebrow="News intelligence"
           title="Signals driving the current forecast"
           sub="Live Spanish-language news, classified by impact direction and magnitude."
