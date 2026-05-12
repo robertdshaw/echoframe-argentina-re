@@ -283,6 +283,35 @@ export interface HmmDiagnostics {
   state_means_aligned: Record<string, number[]>;
 }
 
+// Barrio-level hierarchical forecast — partial-pooled per-barrio posterior.
+
+export interface BarrioForecastEntry {
+  name: string;
+  tier: 'premium' | 'mid_premium' | 'mid' | 'entry' | string;
+  current_price_m2: number;
+  median_change_pct: number;
+  sigma_pct: number;
+  ci_80_lower: number;
+  ci_80_upper: number;
+  gross_yield_pct: number;
+  risk_adjusted_pct: number;
+  total_return_pct: number;
+  n_eff: number;
+  thin_data: boolean;
+  beta: number;
+  alpha: number;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+export interface BarrioRankingsResponse {
+  caba_mu_pct: number;
+  caba_sigma_pct: number;
+  barrios: BarrioForecastEntry[];
+  thin_data_threshold: number;
+  timestamp: string;
+}
+
 // Net return waterfall — gross→net decomposition for CABA apartments.
 
 export interface NetReturnComponent {

@@ -513,3 +513,102 @@ class CalibrationData:
                 }
             }
         }
+
+    def get_barrio_priors(self) -> Dict[str, Dict[str, float]]:
+        """
+        Per-barrio hierarchical priors for the partial-pooled forecast.
+
+        Each barrio is modelled as a linear projection of the CABA-aggregate
+        forecast:
+              μ_barrio = μ_caba · beta + alpha
+        Where:
+          * beta  — relative volatility/correlation to the city index.
+              Premium barrios lead city moves (β>1); peripheral/lower-tier
+              barrios lag (β<1). Calibrated to long-run IDECBA per-barrio
+              dispersion behaviour 2018–2025.
+          * alpha — barrio-specific structural drift in pp/yr. Captures
+              demand momentum that's not explained by city-wide dynamics
+              (Villa Urquiza gentrification, Puerto Madero new supply, etc.).
+          * n_eff — effective per-barrio sample size, controlling shrinkage
+              of σ. Barrios with thin transaction data (n_eff<12) shrink
+              heavily toward the city posterior — see bayesian_barrios.
+          * yield_pct — gross rental yield (USD-equivalent) for the barrio.
+              Source: Reporte Inmobiliario / Argenprop per-barrio 2025 surveys.
+          * current_price_m2 — median current price level (USD/m²) from
+              listings; used for projected_price computation.
+          * tier — segmentation label used by the frontend to render rows
+              in the ranked tables.
+
+        Barrios with no historical track record in the model carry a
+        thin_data flag and are excluded from the ranked tables; their
+        forecast inherits the city posterior almost entirely.
+        """
+        return {
+            # Premium / north-east axis
+            'Puerto Madero': {
+                'beta': 1.22, 'alpha': 0.4, 'n_eff': 16,
+                'yield_pct': 3.6, 'current_price_m2': 5900, 'tier': 'premium',
+            },
+            'Palermo': {
+                'beta': 1.05, 'alpha': 0.5, 'n_eff': 32,
+                'yield_pct': 4.5, 'current_price_m2': 3100, 'tier': 'premium',
+            },
+            'Recoleta': {
+                'beta': 1.08, 'alpha': 0.0, 'n_eff': 30,
+                'yield_pct': 4.2, 'current_price_m2': 2850, 'tier': 'premium',
+            },
+            'Belgrano': {
+                'beta': 1.00, 'alpha': 0.2, 'n_eff': 28,
+                'yield_pct': 4.4, 'current_price_m2': 2700, 'tier': 'mid_premium',
+            },
+            # Mid-tier interior — strong recovery momentum 2024–2026
+            'Villa Urquiza': {
+                'beta': 0.95, 'alpha': 0.8, 'n_eff': 22,
+                'yield_pct': 4.8, 'current_price_m2': 2250, 'tier': 'mid',
+            },
+            'Villa Crespo': {
+                'beta': 0.95, 'alpha': 0.6, 'n_eff': 20,
+                'yield_pct': 4.7, 'current_price_m2': 2350, 'tier': 'mid',
+            },
+            'Caballito': {
+                'beta': 0.92, 'alpha': 0.3, 'n_eff': 26,
+                'yield_pct': 4.9, 'current_price_m2': 2000, 'tier': 'mid',
+            },
+            'Almagro': {
+                'beta': 0.90, 'alpha': 0.4, 'n_eff': 18,
+                'yield_pct': 5.0, 'current_price_m2': 1900, 'tier': 'mid',
+            },
+            'Colegiales': {
+                'beta': 0.95, 'alpha': 0.5, 'n_eff': 14,
+                'yield_pct': 4.6, 'current_price_m2': 2400, 'tier': 'mid',
+            },
+            'Núñez': {
+                'beta': 1.02, 'alpha': 0.3, 'n_eff': 16,
+                'yield_pct': 4.3, 'current_price_m2': 2650, 'tier': 'mid_premium',
+            },
+            # West / south — slower betas, lower price tier
+            'Flores': {
+                'beta': 0.85, 'alpha': -0.1, 'n_eff': 14,
+                'yield_pct': 5.2, 'current_price_m2': 1700, 'tier': 'entry',
+            },
+            'Boedo': {
+                'beta': 0.88, 'alpha': 0.1, 'n_eff': 12,
+                'yield_pct': 5.1, 'current_price_m2': 1800, 'tier': 'entry',
+            },
+            'Villa Devoto': {
+                'beta': 0.92, 'alpha': 0.0, 'n_eff': 14,
+                'yield_pct': 4.7, 'current_price_m2': 2100, 'tier': 'mid',
+            },
+            'Barracas': {
+                'beta': 0.85, 'alpha': 0.2, 'n_eff': 10,
+                'yield_pct': 5.3, 'current_price_m2': 1650, 'tier': 'entry',
+            },
+            'La Boca': {
+                'beta': 0.80, 'alpha': -0.3, 'n_eff': 8,
+                'yield_pct': 5.5, 'current_price_m2': 1400, 'tier': 'entry',
+            },
+            'Villa Lugano': {
+                'beta': 0.75, 'alpha': -0.5, 'n_eff': 6,
+                'yield_pct': 5.8, 'current_price_m2': 1150, 'tier': 'entry',
+            },
+        }

@@ -336,6 +336,37 @@ class CommodityPricesResponse(BaseModel):
     timestamp: datetime = Field(..., description="Response timestamp")
 
 
+# Barrio-level hierarchical forecast models
+
+class BarrioForecastEntry(BaseModel):
+    """Single barrio entry in the hierarchical-pooled forecast."""
+    name: str = Field(..., description="Barrio name")
+    tier: str = Field(..., description="Price tier (premium / mid_premium / mid / entry)")
+    current_price_m2: float = Field(..., description="Current median USD/m²")
+    median_change_pct: float = Field(..., description="1y posterior median %-appreciation")
+    sigma_pct: float = Field(..., description="Posterior σ (after shrinkage)")
+    ci_80_lower: float = Field(..., description="Lower bound of 80% CI on 1y change")
+    ci_80_upper: float = Field(..., description="Upper bound of 80% CI on 1y change")
+    gross_yield_pct: float = Field(..., description="Gross rental yield (USD)")
+    risk_adjusted_pct: float = Field(..., description="median_change / sigma (Sharpe-style ratio)")
+    total_return_pct: float = Field(..., description="median_change + gross_yield (pre-cost total return)")
+    n_eff: int = Field(..., description="Effective per-barrio sample size used in shrinkage")
+    thin_data: bool = Field(..., description="True when n_eff < threshold — treat forecast as directional only")
+    beta: float = Field(..., description="Sensitivity of barrio returns to CABA-aggregate returns")
+    alpha: float = Field(..., description="Structural barrio-specific drift (pp/yr)")
+    latitude: Optional[float] = Field(None, description="Barrio centroid latitude (WGS84)")
+    longitude: Optional[float] = Field(None, description="Barrio centroid longitude (WGS84)")
+
+
+class BarrioRankingsResponse(BaseModel):
+    """Per-barrio 1-year forecast list, plus the city-aggregate hyperprior."""
+    caba_mu_pct: float = Field(..., description="CABA-aggregate year-1 median %-change (the hyperprior mean)")
+    caba_sigma_pct: float = Field(..., description="CABA-aggregate year-1 σ (the hyperprior σ)")
+    barrios: List[BarrioForecastEntry] = Field(..., description="Per-barrio forecasts, pre-sorted by total return")
+    thin_data_threshold: int = Field(..., description="Below this n_eff a barrio is flagged thin_data")
+    timestamp: datetime = Field(..., description="Response timestamp")
+
+
 # Net return decomposition models
 
 class NetReturnComponent(BaseModel):

@@ -16,9 +16,12 @@ from .schemas import (
     ModelEstimate, BehavioralAdjustment, RegimeContext, TopSignal,
     ModelMetadata, ConfidenceInterval, SummaryForecast,
     NetReturnResponse, NetReturnAppreciation, NetReturnComponent,
+    BarrioRankingsResponse, BarrioForecastEntry,
 )
 from services.forecast_service import ForecastService
 from services.data_pipeline import DataPipeline
+from models.bayesian_barrios import BarrioForecaster, THIN_DATA_THRESHOLD
+from data.properati_scraper import _coords_for_barrio
 
 
 # Standing Argentine CABA market defaults for the net-return decomposition.
@@ -476,6 +479,71 @@ async def get_departamentos_net_return(
     except Exception as e:
         logger.error(f"Error in net-return decomposition: {e}")
         raise HTTPException(status_code=500, detail=f"Net return calculation failed: {str(e)}")
+
+
+@router.get("/barrio-rankings/departamentos", response_model=BarrioRankingsResponse)
+async def get_barrio_rankings(
+    forecast_service: ForecastService = Depends(get_forecast_service),
+):
+    """
+    Hierarchical partial-pooled 1-year forecast for every CABA barrio.
+
+    Each barrio is a linear projection of the CABA-aggregate posterior:
+    μ_barrio = μ_caba · β + α. The β / α priors live in calibration_data;
+    σ widens for barrios with thin data (n_eff < 12) so the dashboard can
+    flag them honestly. Sorted by total return (appreciation + yield)
+    descending; the frontend re-sorts for the by-yield and risk-adjusted
+    tables without another API call.
+    """
+    try:
+        caba_forecast = await forecast_service.generate_departamentos_forecast(
+            barrio=None,
+            year_horizons=[1],
+        )
+        year_1 = caba_forecast.forecasts[1]["model_estimate"]
+        caba_mu = float(year_1["median_change_pct"])
+        # Derive σ from the 80% CI half-width: ci_80_upper - mean ≈ 1.282σ.
+        ci_lower, ci_upper = year_1["ci_80"]
+        caba_sigma = max(0.1, (float(ci_upper) - float(ci_lower)) / (2 * 1.2816))
+
+        forecaster = BarrioForecaster()
+        barrio_forecasts = forecaster.forecast_all(caba_mu=caba_mu, caba_sigma=caba_sigma)
+
+        entries: list[BarrioForecastEntry] = []
+        for b in barrio_forecasts:
+            lat, lon = _coords_for_barrio(b.name, b.name)
+            entries.append(
+                BarrioForecastEntry(
+                    name=b.name,
+                    tier=b.tier,
+                    current_price_m2=b.current_price_m2,
+                    median_change_pct=b.median_change_pct,
+                    sigma_pct=b.sigma_pct,
+                    ci_80_lower=b.ci_80_lower,
+                    ci_80_upper=b.ci_80_upper,
+                    gross_yield_pct=b.gross_yield_pct,
+                    risk_adjusted_pct=b.risk_adjusted_pct,
+                    total_return_pct=b.total_return_pct,
+                    n_eff=b.n_eff,
+                    thin_data=b.thin_data,
+                    beta=b.beta,
+                    alpha=b.alpha,
+                    latitude=lat,
+                    longitude=lon,
+                )
+            )
+
+        return BarrioRankingsResponse(
+            caba_mu_pct=round(caba_mu, 2),
+            caba_sigma_pct=round(caba_sigma, 2),
+            barrios=entries,
+            thin_data_threshold=THIN_DATA_THRESHOLD,
+            timestamp=datetime.utcnow(),
+        )
+
+    except Exception as e:
+        logger.error(f"Error in barrio rankings: {e}")
+        raise HTTPException(status_code=500, detail=f"Barrio rankings failed: {str(e)}")
 
 
 @router.get("/health")

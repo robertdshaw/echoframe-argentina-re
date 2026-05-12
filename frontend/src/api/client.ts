@@ -12,6 +12,7 @@ import type {
   PropertyListingsResponse,
   NarrativeResponse,
   NetReturnResponse,
+  BarrioRankingsResponse,
 } from '../types';
 
 const baseURL =
@@ -68,6 +69,13 @@ export const forecastApi = {
     const { data } = await apiClient.get<NetReturnResponse>(
       '/api/v1/forecast/net-return/departamentos',
       { params: { barrio } },
+    );
+    return data;
+  },
+
+  async getBarrioRankings(): Promise<BarrioRankingsResponse> {
+    const { data } = await apiClient.get<BarrioRankingsResponse>(
+      '/api/v1/forecast/barrio-rankings/departamentos',
     );
     return data;
   },

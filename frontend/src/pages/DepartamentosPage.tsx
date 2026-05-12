@@ -10,6 +10,7 @@ import ProbabilityGauge from '../components/forecast/ProbabilityGauge';
 import HorizonSelector from '../components/forecast/HorizonSelector';
 import NetReturnWaterfall from '../components/forecast/NetReturnWaterfall';
 import HurdleRateBar from '../components/forecast/HurdleRateBar';
+import BarrioForecastPanel from '../components/forecast/BarrioForecastPanel';
 import RegimeIndicator from '../components/regime/RegimeIndicator';
 import RegimeHistoryStrip from '../components/regime/RegimeHistoryStrip';
 import ModelAccuracyPanel from '../components/model/ModelAccuracyPanel';
@@ -232,10 +233,23 @@ const DepartamentosPage = () => {
         </div>
       </section>
 
-      {/* 4. NET RETURN WATERFALL — answers "what will I actually earn?" */}
+      {/* 4. BARRIO HEAT MAP + RANKED TABLES — answers "where to buy" */}
       <section>
         <SectionLabel
           number="03"
+          eyebrow="Where to buy"
+          title="Per-barrio 1y forecast"
+          sub="Hierarchical partial-pooled model. Each barrio borrows strength from the CABA-aggregate posterior; thin-data barrios are flagged."
+        />
+        <ErrorBoundary fallbackTitle="Barrio forecast unavailable">
+          <BarrioForecastPanel onSelectBarrio={(name) => setBarrio(name)} />
+        </ErrorBoundary>
+      </section>
+
+      {/* 5. NET RETURN WATERFALL — answers "what will I actually earn?" */}
+      <section>
+        <SectionLabel
+          number="04"
           eyebrow="What you'll earn"
           title="Net annual USD return"
           sub="Gross appreciation plus rental yield, minus carrying costs, taxes, and amortised transaction friction. Drag the hold-period slider to see how patience changes the take-home."
@@ -245,10 +259,10 @@ const DepartamentosPage = () => {
         </ErrorBoundary>
       </section>
 
-      {/* 5. HURDLE-RATE COMPARISON — answers "versus what?" */}
+      {/* 6. HURDLE-RATE COMPARISON — answers "versus what?" */}
       <section>
         <SectionLabel
-          number="04"
+          number="05"
           eyebrow="Versus alternatives"
           title="Hurdle-rate comparison"
           sub="Where the apartment thesis sits against passive USD alternatives. The right framing is 'Treasuries plus optionality on Argentine normalisation,' not 'equity beating.'"
@@ -258,11 +272,11 @@ const DepartamentosPage = () => {
         </ErrorBoundary>
       </section>
 
-      {/* 6. GEOSPATIAL — map handles its own loading state internally,
+      {/* 7. GEOSPATIAL LISTINGS — map handles its own loading state internally,
               but if forecast errors, fall back to a clean skeleton. */}
       <section>
         <SectionLabel
-          number="05"
+          number="06"
           eyebrow="Geography"
           title="Listings across CABA"
           sub="Sampled apartments with real coordinates. Color = price/m² band, circle size ∝ surface."
@@ -272,10 +286,10 @@ const DepartamentosPage = () => {
         </ErrorBoundary>
       </section>
 
-      {/* 7. MODEL VALIDATION */}
+      {/* 8. MODEL VALIDATION */}
       <section>
         <SectionLabel
-          number="06"
+          number="07"
           eyebrow="Model validation"
           title="Historical track record"
           sub="Walk-forward leave-one-out backtest across 29 anchor quarters. Calibration, Brier, MAE vs naive."
@@ -328,10 +342,10 @@ const DepartamentosPage = () => {
         </ErrorBoundary>
       </section>
 
-      {/* 8. REGIME */}
+      {/* 9. REGIME */}
       <section>
         <SectionLabel
-          number="07"
+          number="08"
           eyebrow="Macro regime"
           title="What state is the market in?"
           sub="HMM posterior over Crisis / Recovery / Boom, with transition probabilities forward 4Q."
@@ -345,10 +359,10 @@ const DepartamentosPage = () => {
         </ErrorBoundary>
       </section>
 
-      {/* 9. SIGNALS */}
+      {/* 10. SIGNALS */}
       <section>
         <SectionLabel
-          number="08"
+          number="09"
           eyebrow="News intelligence"
           title="Signals driving the current forecast"
           sub="Live Spanish-language news, classified by impact direction and magnitude."
