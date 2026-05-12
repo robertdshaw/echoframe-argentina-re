@@ -230,6 +230,10 @@ class ProcessedSignalResponse(BaseModel):
     extracted_entities: List[ExtractedEntityData] = Field(..., description="Extracted entities")
     market_impact_score: float = Field(..., ge=0, le=1, description="Overall market impact score")
     processed_at: datetime = Field(..., description="Processing timestamp")
+    provenance: Optional[str] = Field(
+        None,
+        description="Which dashboard section this signal influences, e.g. '§03 Timing · credit availability trigger'",
+    )
 
 
 class SignalSummaryResponse(BaseModel):

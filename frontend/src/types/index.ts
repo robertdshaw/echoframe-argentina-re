@@ -125,6 +125,7 @@ export interface ProcessedSignal {
   }>;
   market_impact_score: number;
   processed_at: string;
+  provenance?: string | null;
 }
 
 export interface MacroIndicator {

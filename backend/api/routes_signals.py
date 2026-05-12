@@ -21,6 +21,7 @@ from services.data_pipeline import DataPipeline
 from nlp.signal_classifier import SignalClassification
 from nlp.sentiment import SentimentScore
 from nlp.entity_extractor import ExtractedEntity
+from nlp.relevance_filter import provenance_tag
 
 
 logger = logging.getLogger(__name__)
@@ -127,7 +128,8 @@ async def get_latest_signals(
                     for entity in signal.extracted_entities[:10]  # Limit entities for response size
                 ],
                 market_impact_score=signal.market_impact_score,
-                processed_at=signal.processed_at
+                processed_at=signal.processed_at,
+                provenance=provenance_tag(signal.signal_classification.signal_type.value),
             )
             response_signals.append(response_signal)
         
@@ -259,7 +261,8 @@ async def get_signals_by_segment(
                     for entity in signal.extracted_entities[:5]  # Limit for response size
                 ],
                 market_impact_score=signal.market_impact_score,
-                processed_at=signal.processed_at
+                processed_at=signal.processed_at,
+                provenance=provenance_tag(signal.signal_classification.signal_type.value),
             )
             response_signals.append(response_signal)
         
@@ -323,9 +326,10 @@ async def classify_article(
                 for entity in processed_signal.extracted_entities
             ],
             market_impact_score=processed_signal.market_impact_score,
-            processed_at=processed_signal.processed_at
+            processed_at=processed_signal.processed_at,
+            provenance=provenance_tag(processed_signal.signal_classification.signal_type.value),
         )
-        
+
         return response
         
     except Exception as e:

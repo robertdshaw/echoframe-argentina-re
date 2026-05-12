@@ -14,6 +14,7 @@ import asyncio
 from nlp.signal_classifier import SignalClassifier, SignalClassification
 from nlp.sentiment import SpanishSentimentAnalyzer, SentimentScore
 from nlp.entity_extractor import ArgentineEntityExtractor, ExtractedEntity
+from nlp.relevance_filter import filter_argentina_relevant
 from .data_pipeline import DataPipeline
 
 
@@ -82,12 +83,29 @@ class SignalService:
         logger.info(f"Processing {limit} latest news signals")
         
         try:
-            # Get raw news articles
+            # Pull a wider raw pool than `limit` because the relevance
+            # filter typically drops ~30–50% of the live news feed (foreign
+            # celebrity, sports, generic global macro). Without the
+            # over-fetch the dashboard would render thin after denoise.
             articles = await self.data_pipeline.get_news_signals(
-                limit=limit, 
-                category=category_filter
+                limit=max(limit * 2, 60),
+                category=category_filter,
             )
-            
+
+            # Stage 1 of the denoise pipeline: positive-allowlist filter
+            # that keeps only Argentina-domestic headlines before we burn
+            # cycles on classification + sentiment + entity extraction.
+            # Stage 2 (LLM dual-scoring) ships separately to keep cost
+            # tracking infrastructure isolated.
+            relevant, dropped = filter_argentina_relevant(articles)
+            if dropped:
+                logger.info(
+                    "Relevance filter dropped %d/%d off-topic articles",
+                    dropped,
+                    len(articles),
+                )
+            articles = relevant[:limit]
+
             # Process articles through NLP pipeline
             processed_signals = await self._process_articles_batch(articles)
             
