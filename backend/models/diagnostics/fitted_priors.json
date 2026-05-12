@@ -1,0 +1,17 @@
+{
+  "crisis": {
+    "n": 12,
+    "year_1_mean": -9.417,
+    "year_1_std": 3.758
+  },
+  "recovery": {
+    "n": 16,
+    "year_1_mean": 4.753,
+    "year_1_std": 9.804
+  },
+  "boom": {
+    "n": 1,
+    "year_1_mean": NaN,
+    "year_1_std": NaN
+  }
+}

@@ -1,0 +1,80 @@
+## Render blueprint for EchoFrame Argentina RE Intelligence.
+##
+## Push this repo to GitHub, then in the Render dashboard go to
+##   New → Blueprint  →  point at this repo
+## Render reads this file and provisions both services in one go.
+
+services:
+  # ---------------------------------------------------------------
+  # Backend — FastAPI on Python
+  # ---------------------------------------------------------------
+  - type: web
+    name: echoframe-argentina-api
+    runtime: python
+    region: oregon           # change to frankfurt/singapore if closer
+    plan: free               # 512MB / 0.5 vCPU — fine for the demo
+    rootDir: backend
+    # Install deps, then run the walk-forward backtest once so the
+    # model-accuracy and HMM diagnostics JSON exist at startup.
+    buildCommand: |
+      pip install --upgrade pip &&
+      pip install -r requirements.txt &&
+      python ../scripts/run_backtest.py
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: ENABLE_LIVE_APIS
+        value: "true"
+      - key: ENABLE_NLP_PROCESSING
+        value: "true"
+      - key: ENABLE_REGIME_DETECTION
+        value: "true"
+      - key: ENABLE_BEHAVIORAL_ADJUSTMENTS
+        value: "true"
+      - key: CORS_ORIGINS
+        # Tighten to the frontend origin after first deploy
+        value: '["*"]'
+      # Secrets — fill these in the Render dashboard, never commit values.
+      - key: NEWSDATA_API_KEY
+        sync: false
+      - key: FRED_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+  # ---------------------------------------------------------------
+  # Frontend — static React build served from CDN
+  # ---------------------------------------------------------------
+  - type: web
+    name: echoframe-argentina-web
+    runtime: static
+    region: oregon
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    # Single-page app routing: rewrite all unknown paths to index.html.
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      # VITE_API_URL is baked into the static bundle at build time.
+      # Set it in the Render dashboard to the live API URL once the
+      # backend service is up (e.g. https://echoframe-argentina-api.onrender.com).
+      - key: VITE_API_URL
+        sync: false
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable

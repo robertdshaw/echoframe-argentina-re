@@ -1,0 +1,492 @@
+[
+  {
+    "date": "2020-01-01",
+    "soybean_usd_per_ton": 342.50,
+    "wheat_usd_per_ton": 198.25,
+    "corn_usd_per_ton": 155.80,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2020-02-01",
+    "soybean_usd_per_ton": 338.75,
+    "wheat_usd_per_ton": 201.50,
+    "corn_usd_per_ton": 152.30,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2020-03-01",
+    "soybean_usd_per_ton": 325.90,
+    "wheat_usd_per_ton": 189.75,
+    "corn_usd_per_ton": 148.25,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2020-04-01",
+    "soybean_usd_per_ton": 315.20,
+    "wheat_usd_per_ton": 182.40,
+    "corn_usd_per_ton": 142.60,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2020-05-01",
+    "soybean_usd_per_ton": 322.85,
+    "wheat_usd_per_ton": 187.30,
+    "corn_usd_per_ton": 145.90,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2020-06-01",
+    "soybean_usd_per_ton": 335.40,
+    "wheat_usd_per_ton": 194.80,
+    "corn_usd_per_ton": 150.75,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2020-07-01",
+    "soybean_usd_per_ton": 348.60,
+    "wheat_usd_per_ton": 203.25,
+    "corn_usd_per_ton": 156.40,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2020-08-01",
+    "soybean_usd_per_ton": 365.75,
+    "wheat_usd_per_ton": 215.60,
+    "corn_usd_per_ton": 164.20,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2020-09-01",
+    "soybean_usd_per_ton": 378.90,
+    "wheat_usd_per_ton": 228.40,
+    "corn_usd_per_ton": 172.35,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2020-10-01",
+    "soybean_usd_per_ton": 385.25,
+    "wheat_usd_per_ton": 235.80,
+    "corn_usd_per_ton": 175.90,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2020-11-01",
+    "soybean_usd_per_ton": 398.40,
+    "wheat_usd_per_ton": 248.60,
+    "corn_usd_per_ton": 182.70,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2020-12-01",
+    "soybean_usd_per_ton": 415.30,
+    "wheat_usd_per_ton": 258.90,
+    "corn_usd_per_ton": 189.45,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2021-01-01",
+    "soybean_usd_per_ton": 425.80,
+    "wheat_usd_per_ton": 265.40,
+    "corn_usd_per_ton": 195.60,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2021-02-01",
+    "soybean_usd_per_ton": 445.20,
+    "wheat_usd_per_ton": 275.30,
+    "corn_usd_per_ton": 208.90,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2021-03-01",
+    "soybean_usd_per_ton": 465.75,
+    "wheat_usd_per_ton": 289.60,
+    "corn_usd_per_ton": 218.40,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2021-04-01",
+    "soybean_usd_per_ton": 478.90,
+    "wheat_usd_per_ton": 298.80,
+    "corn_usd_per_ton": 225.75,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2021-05-01",
+    "soybean_usd_per_ton": 495.35,
+    "wheat_usd_per_ton": 315.20,
+    "corn_usd_per_ton": 238.60,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2021-06-01",
+    "soybean_usd_per_ton": 512.60,
+    "wheat_usd_per_ton": 328.90,
+    "corn_usd_per_ton": 248.35,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2021-07-01",
+    "soybean_usd_per_ton": 485.40,
+    "wheat_usd_per_ton": 305.70,
+    "corn_usd_per_ton": 232.80,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2021-08-01",
+    "soybean_usd_per_ton": 468.25,
+    "wheat_usd_per_ton": 292.45,
+    "corn_usd_per_ton": 221.90,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2021-09-01",
+    "soybean_usd_per_ton": 452.80,
+    "wheat_usd_per_ton": 285.60,
+    "corn_usd_per_ton": 215.75,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2021-10-01",
+    "soybean_usd_per_ton": 465.90,
+    "wheat_usd_per_ton": 295.30,
+    "corn_usd_per_ton": 223.40,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2021-11-01",
+    "soybean_usd_per_ton": 475.20,
+    "wheat_usd_per_ton": 302.80,
+    "corn_usd_per_ton": 229.65,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2021-12-01",
+    "soybean_usd_per_ton": 458.75,
+    "wheat_usd_per_ton": 289.40,
+    "corn_usd_per_ton": 218.20,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2022-01-01",
+    "soybean_usd_per_ton": 472.30,
+    "wheat_usd_per_ton": 298.60,
+    "corn_usd_per_ton": 226.85,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2022-02-01",
+    "soybean_usd_per_ton": 485.90,
+    "wheat_usd_per_ton": 315.80,
+    "corn_usd_per_ton": 238.40,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2022-03-01",
+    "soybean_usd_per_ton": 525.40,
+    "wheat_usd_per_ton": 365.20,
+    "corn_usd_per_ton": 268.90,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2022-04-01",
+    "soybean_usd_per_ton": 548.75,
+    "wheat_usd_per_ton": 385.60,
+    "corn_usd_per_ton": 282.35,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2022-05-01",
+    "soybean_usd_per_ton": 565.20,
+    "wheat_usd_per_ton": 398.40,
+    "corn_usd_per_ton": 295.80,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2022-06-01",
+    "soybean_usd_per_ton": 578.85,
+    "wheat_usd_per_ton": 412.90,
+    "corn_usd_per_ton": 308.60,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2022-07-01",
+    "soybean_usd_per_ton": 555.30,
+    "wheat_usd_per_ton": 389.75,
+    "corn_usd_per_ton": 285.45,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2022-08-01",
+    "soybean_usd_per_ton": 538.60,
+    "wheat_usd_per_ton": 372.80,
+    "corn_usd_per_ton": 268.90,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2022-09-01",
+    "soybean_usd_per_ton": 512.45,
+    "wheat_usd_per_ton": 348.60,
+    "corn_usd_per_ton": 252.35,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2022-10-01",
+    "soybean_usd_per_ton": 495.80,
+    "wheat_usd_per_ton": 335.90,
+    "corn_usd_per_ton": 242.70,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2022-11-01",
+    "soybean_usd_per_ton": 485.25,
+    "wheat_usd_per_ton": 325.40,
+    "corn_usd_per_ton": 235.60,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2022-12-01",
+    "soybean_usd_per_ton": 472.90,
+    "wheat_usd_per_ton": 315.80,
+    "corn_usd_per_ton": 228.45,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2023-01-01",
+    "soybean_usd_per_ton": 465.40,
+    "wheat_usd_per_ton": 308.25,
+    "corn_usd_per_ton": 222.80,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2023-02-01",
+    "soybean_usd_per_ton": 458.75,
+    "wheat_usd_per_ton": 298.60,
+    "corn_usd_per_ton": 218.35,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2023-03-01",
+    "soybean_usd_per_ton": 445.20,
+    "wheat_usd_per_ton": 285.90,
+    "corn_usd_per_ton": 208.70,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2023-04-01",
+    "soybean_usd_per_ton": 425.85,
+    "wheat_usd_per_ton": 268.40,
+    "corn_usd_per_ton": 195.60,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2023-05-01",
+    "soybean_usd_per_ton": 415.30,
+    "wheat_usd_per_ton": 258.70,
+    "corn_usd_per_ton": 188.90,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2023-06-01",
+    "soybean_usd_per_ton": 398.60,
+    "wheat_usd_per_ton": 242.85,
+    "corn_usd_per_ton": 178.25,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2023-07-01",
+    "soybean_usd_per_ton": 385.75,
+    "wheat_usd_per_ton": 235.40,
+    "corn_usd_per_ton": 172.60,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2023-08-01",
+    "soybean_usd_per_ton": 375.90,
+    "wheat_usd_per_ton": 228.90,
+    "corn_usd_per_ton": 168.35,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2023-09-01",
+    "soybean_usd_per_ton": 368.25,
+    "wheat_usd_per_ton": 222.70,
+    "corn_usd_per_ton": 164.80,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2023-10-01",
+    "soybean_usd_per_ton": 372.80,
+    "wheat_usd_per_ton": 226.40,
+    "corn_usd_per_ton": 167.20,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2023-11-01",
+    "soybean_usd_per_ton": 385.45,
+    "wheat_usd_per_ton": 238.60,
+    "corn_usd_per_ton": 175.85,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2023-12-01",
+    "soybean_usd_per_ton": 398.20,
+    "wheat_usd_per_ton": 248.90,
+    "corn_usd_per_ton": 182.45,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2024-01-01",
+    "soybean_usd_per_ton": 412.75,
+    "wheat_usd_per_ton": 258.40,
+    "corn_usd_per_ton": 189.60,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2024-02-01",
+    "soybean_usd_per_ton": 425.30,
+    "wheat_usd_per_ton": 268.90,
+    "corn_usd_per_ton": 196.75,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2024-03-01",
+    "soybean_usd_per_ton": 438.85,
+    "wheat_usd_per_ton": 278.60,
+    "corn_usd_per_ton": 204.20,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2024-04-01",
+    "soybean_usd_per_ton": 452.40,
+    "wheat_usd_per_ton": 289.75,
+    "corn_usd_per_ton": 212.85,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2024-05-01",
+    "soybean_usd_per_ton": 465.20,
+    "wheat_usd_per_ton": 298.40,
+    "corn_usd_per_ton": 218.90,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2024-06-01",
+    "soybean_usd_per_ton": 472.85,
+    "wheat_usd_per_ton": 305.60,
+    "corn_usd_per_ton": 224.35,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2024-07-01",
+    "soybean_usd_per_ton": 478.60,
+    "wheat_usd_per_ton": 312.80,
+    "corn_usd_per_ton": 228.70,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2024-08-01",
+    "soybean_usd_per_ton": 485.75,
+    "wheat_usd_per_ton": 318.90,
+    "corn_usd_per_ton": 235.40,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2024-09-01",
+    "soybean_usd_per_ton": 492.30,
+    "wheat_usd_per_ton": 325.60,
+    "corn_usd_per_ton": 241.80,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2024-10-01",
+    "soybean_usd_per_ton": 498.85,
+    "wheat_usd_per_ton": 332.40,
+    "corn_usd_per_ton": 248.25,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2024-11-01",
+    "soybean_usd_per_ton": 505.20,
+    "wheat_usd_per_ton": 338.90,
+    "corn_usd_per_ton": 254.60,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2024-12-01",
+    "soybean_usd_per_ton": 512.45,
+    "wheat_usd_per_ton": 345.80,
+    "corn_usd_per_ton": 261.35,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2025-01-01",
+    "soybean_usd_per_ton": 518.75,
+    "wheat_usd_per_ton": 352.60,
+    "corn_usd_per_ton": 267.90,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2025-02-01",
+    "soybean_usd_per_ton": 525.30,
+    "wheat_usd_per_ton": 358.40,
+    "corn_usd_per_ton": 274.20,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2025-03-01",
+    "soybean_usd_per_ton": 532.85,
+    "wheat_usd_per_ton": 365.90,
+    "corn_usd_per_ton": 280.75,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2025-04-01",
+    "soybean_usd_per_ton": 528.40,
+    "wheat_usd_per_ton": 359.20,
+    "corn_usd_per_ton": 275.60,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2025-05-01",
+    "soybean_usd_per_ton": 535.65,
+    "wheat_usd_per_ton": 367.80,
+    "corn_usd_per_ton": 282.90,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2026-01-01",
+    "soybean_usd_per_ton": 548.20,
+    "wheat_usd_per_ton": 378.60,
+    "corn_usd_per_ton": 295.40,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2026-02-01",
+    "soybean_usd_per_ton": 542.75,
+    "wheat_usd_per_ton": 372.90,
+    "corn_usd_per_ton": 289.85,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2026-03-01",
+    "soybean_usd_per_ton": 555.30,
+    "wheat_usd_per_ton": 385.40,
+    "corn_usd_per_ton": 302.60,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2026-04-01",
+    "soybean_usd_per_ton": 562.85,
+    "wheat_usd_per_ton": 392.70,
+    "corn_usd_per_ton": 309.20,
+    "source": "MATBA-ROFEX"
+  },
+  {
+    "date": "2026-05-01",
+    "soybean_usd_per_ton": 568.40,
+    "wheat_usd_per_ton": 398.90,
+    "corn_usd_per_ton": 315.75,
+    "source": "MATBA-ROFEX"
+  }
+]

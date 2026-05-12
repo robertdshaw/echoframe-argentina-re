@@ -1,0 +1,208 @@
+{
+  "training_method": "hmm_unsupervised",
+  "n_observations": 32,
+  "n_states": 3,
+  "log_likelihood": -54.951267097257684,
+  "label_agreement_rate": 0.625,
+  "transition_matrix": [
+    [
+      0.9090954852647526,
+      0.0909045147352473,
+      7.971705655973998e-58
+    ],
+    [
+      2.8299354458116983e-16,
+      0.9473668870885075,
+      0.0526331129114921
+    ],
+    [
+      3.946821413747027e-74,
+      1.0,
+      0.0
+    ]
+  ],
+  "state_sequence": [
+    {
+      "quarter": "2018Q2",
+      "fitted_state": 0,
+      "regime": "crisis"
+    },
+    {
+      "quarter": "2018Q3",
+      "fitted_state": 0,
+      "regime": "crisis"
+    },
+    {
+      "quarter": "2018Q4",
+      "fitted_state": 0,
+      "regime": "crisis"
+    },
+    {
+      "quarter": "2019Q1",
+      "fitted_state": 0,
+      "regime": "crisis"
+    },
+    {
+      "quarter": "2019Q2",
+      "fitted_state": 0,
+      "regime": "crisis"
+    },
+    {
+      "quarter": "2019Q3",
+      "fitted_state": 0,
+      "regime": "crisis"
+    },
+    {
+      "quarter": "2019Q4",
+      "fitted_state": 0,
+      "regime": "crisis"
+    },
+    {
+      "quarter": "2020Q1",
+      "fitted_state": 0,
+      "regime": "crisis"
+    },
+    {
+      "quarter": "2020Q2",
+      "fitted_state": 0,
+      "regime": "crisis"
+    },
+    {
+      "quarter": "2020Q3",
+      "fitted_state": 0,
+      "regime": "crisis"
+    },
+    {
+      "quarter": "2020Q4",
+      "fitted_state": 0,
+      "regime": "crisis"
+    },
+    {
+      "quarter": "2021Q1",
+      "fitted_state": 1,
+      "regime": "recovery"
+    },
+    {
+      "quarter": "2021Q2",
+      "fitted_state": 1,
+      "regime": "recovery"
+    },
+    {
+      "quarter": "2021Q3",
+      "fitted_state": 1,
+      "regime": "recovery"
+    },
+    {
+      "quarter": "2021Q4",
+      "fitted_state": 1,
+      "regime": "recovery"
+    },
+    {
+      "quarter": "2022Q1",
+      "fitted_state": 1,
+      "regime": "recovery"
+    },
+    {
+      "quarter": "2022Q2",
+      "fitted_state": 1,
+      "regime": "recovery"
+    },
+    {
+      "quarter": "2022Q3",
+      "fitted_state": 1,
+      "regime": "recovery"
+    },
+    {
+      "quarter": "2022Q4",
+      "fitted_state": 1,
+      "regime": "recovery"
+    },
+    {
+      "quarter": "2023Q1",
+      "fitted_state": 1,
+      "regime": "recovery"
+    },
+    {
+      "quarter": "2023Q2",
+      "fitted_state": 1,
+      "regime": "recovery"
+    },
+    {
+      "quarter": "2023Q3",
+      "fitted_state": 1,
+      "regime": "recovery"
+    },
+    {
+      "quarter": "2023Q4",
+      "fitted_state": 2,
+      "regime": "boom"
+    },
+    {
+      "quarter": "2024Q1",
+      "fitted_state": 1,
+      "regime": "recovery"
+    },
+    {
+      "quarter": "2024Q2",
+      "fitted_state": 1,
+      "regime": "recovery"
+    },
+    {
+      "quarter": "2024Q3",
+      "fitted_state": 1,
+      "regime": "recovery"
+    },
+    {
+      "quarter": "2024Q4",
+      "fitted_state": 1,
+      "regime": "recovery"
+    },
+    {
+      "quarter": "2025Q1",
+      "fitted_state": 1,
+      "regime": "recovery"
+    },
+    {
+      "quarter": "2025Q2",
+      "fitted_state": 1,
+      "regime": "recovery"
+    },
+    {
+      "quarter": "2025Q3",
+      "fitted_state": 1,
+      "regime": "recovery"
+    },
+    {
+      "quarter": "2025Q4",
+      "fitted_state": 1,
+      "regime": "recovery"
+    },
+    {
+      "quarter": "2026Q1",
+      "fitted_state": 1,
+      "regime": "recovery"
+    }
+  ],
+  "feature_names": [
+    "price_change_z",
+    "volume_yoy_z",
+    "macro_stress_z"
+  ],
+  "state_means_aligned": {
+    "crisis": [
+      -0.6234991212266358,
+      -1.2731323081041679,
+      -0.20347133133586634
+    ],
+    "recovery": [
+      0.09610802250330117,
+      0.6894898951545948,
+      -0.045213071310620724
+    ],
+    "boom": [
+      4.936728362219683,
+      0.21574427810835825,
+      3.142533705612829
+    ]
+  }
+}
