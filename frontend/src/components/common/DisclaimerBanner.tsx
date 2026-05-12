@@ -1,12 +1,12 @@
 const DisclaimerBanner = () => (
   <div className="disclaimer">
-    Las proyecciones presentadas son estimaciones probabilísticas basadas en
-    modelos cuantitativos y no constituyen asesoramiento financiero o de
-    inversión. Los intervalos de confianza reflejan incertidumbre inherente.
-    Rendimientos pasados no garantizan resultados futuros.
+    The projections shown are probabilistic estimates produced by quantitative
+    models and do not constitute financial or investment advice. Confidence
+    intervals reflect inherent uncertainty. Past performance does not guarantee
+    future results.
     <br />
-    <strong>EchoFrame Intelligence</strong> — Análisis ético basado en fuentes
-    licenciadas.
+    <strong>EchoFrame Intelligence</strong> — Ethical analysis built on
+    licensed data sources.
   </div>
 );
 
