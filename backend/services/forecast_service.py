@@ -7,7 +7,7 @@ to generate comprehensive real estate price forecasts with uncertainty quantific
 
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Awaitable, Callable, Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass
 import asyncio
 
@@ -59,10 +59,63 @@ class ForecastService:
         self.prospect_theory = ProspectTheoryAdjuster()
         self.ensemble = EnsembleModel()
         
-        # Cache for expensive computations
-        self._model_cache = {}
-        self._cache_timestamps = {}
+        # Forecast cache uses asyncio.Task storage rather than result
+        # storage so concurrent callers with the same cache key share a
+        # single computation (request coalescing). On a cold start, the
+        # five endpoints that derive from generate_departamentos_forecast
+        # all hit at once; before this fix each would race past the empty
+        # cache and duplicate the data-pipeline pull.
+        #
+        # Each entry is (Task, started_at). Lookup logic:
+        #   - completed task within TTL → return its result immediately
+        #   - in-flight task            → all callers await the same Task
+        #   - expired or errored        → evict and recompute
+        self._task_cache: Dict[str, Tuple[asyncio.Task, datetime]] = {}
+        # Legacy alias retained for the lifespan-shutdown code that
+        # clears caches and any test fixtures referencing the old name.
+        self._model_cache = self._task_cache
+        self._cache_timestamps: Dict[str, datetime] = {}
         self.cache_ttl_minutes = 15  # Cache model results for 15 minutes
+
+    async def _get_or_create_forecast_task(
+        self,
+        cache_key: str,
+        factory: Callable[[], Awaitable[ForecastResult]],
+    ) -> ForecastResult:
+        """
+        Request-coalescing cache. Returns the result of either:
+          (a) a cached completed Task whose age is under the TTL, or
+          (b) a cached in-flight Task that another caller already started, or
+          (c) a freshly-scheduled Task when no live entry exists.
+
+        Failed tasks are evicted so the next call can retry; in-flight
+        tasks are shared so N concurrent callers do 1 computation.
+        """
+        ttl_seconds = self.cache_ttl_minutes * 60
+
+        cached = self._task_cache.get(cache_key)
+        if cached is not None:
+            task, started_at = cached
+            age = (datetime.utcnow() - started_at).total_seconds()
+            if age < ttl_seconds:
+                if task.done():
+                    if task.exception() is None:
+                        return task.result()
+                    # Failed task — fall through and replace.
+                else:
+                    # In-flight — share the computation.
+                    return await task
+
+        # No live entry. Schedule fresh.
+        task = asyncio.create_task(factory())
+        self._task_cache[cache_key] = (task, datetime.utcnow())
+        try:
+            return await task
+        except Exception:
+            # Evict on failure so the next request can retry rather than
+            # being served a cached failure.
+            self._task_cache.pop(cache_key, None)
+            raise
 
     async def generate_departamentos_forecast(
         self,
@@ -72,23 +125,37 @@ class ForecastService:
     ) -> ForecastResult:
         """
         Generate comprehensive forecast for Buenos Aires departamentos.
-        
+
+        Concurrent callers with identical (barrio, year_horizons,
+        scenario_params) share a single computation via the task cache.
+
         Args:
             barrio: Specific neighborhood (optional, defaults to CABA aggregate)
             year_horizons: Forecast horizons in years
             scenario_params: Override parameters for scenario analysis
-            
+
         Returns:
             ForecastResult with model and behavioral forecasts
         """
         cache_key = f"dept_{barrio}_{'-'.join(map(str, year_horizons))}_{hash(str(scenario_params))}"
-        
-        if self._is_cache_valid(cache_key):
-            logger.info(f"Returning cached departamentos forecast: {cache_key}")
-            return self._model_cache[cache_key]
-        
+        return await self._get_or_create_forecast_task(
+            cache_key,
+            lambda: self._compute_departamentos_forecast(barrio, year_horizons, scenario_params),
+        )
+
+    async def _compute_departamentos_forecast(
+        self,
+        barrio: Optional[str],
+        year_horizons: List[int],
+        scenario_params: Optional[Dict[str, float]],
+    ) -> ForecastResult:
+        """
+        Inner computation for generate_departamentos_forecast. Kept as a
+        separate coroutine so the cache wrapper can store the Task. Never
+        call this directly from routes — go through the cached entry.
+        """
         logger.info(f"Generating fresh departamentos forecast for {barrio or 'CABA'}")
-        
+
         try:
             # Collect input data in parallel
             macro_data_task = asyncio.create_task(self.data_pipeline.get_macro_indicators())
@@ -157,13 +224,8 @@ class ForecastService:
                 },
                 timestamp=datetime.utcnow()
             )
-            
-            # Cache the result
-            self._model_cache[cache_key] = result
-            self._cache_timestamps[cache_key] = datetime.utcnow()
-            
             return result
-            
+
         except Exception as e:
             logger.error(f"Error generating departamentos forecast: {e}")
             raise
@@ -176,23 +238,25 @@ class ForecastService:
     ) -> ForecastResult:
         """
         Generate comprehensive forecast for agricultural land (campos).
-        
-        Args:
-            zone: Agricultural zone (core_pampa, santa_fe, etc.)
-            year_horizons: Forecast horizons in years
-            scenario_params: Override parameters for scenario analysis
-            
-        Returns:
-            ForecastResult with model and behavioral forecasts
+
+        Concurrent callers with identical args share a single computation
+        via the task cache (same coalescing as the departamentos path).
         """
         cache_key = f"campos_{zone}_{'-'.join(map(str, year_horizons))}_{hash(str(scenario_params))}"
-        
-        if self._is_cache_valid(cache_key):
-            logger.info(f"Returning cached campos forecast: {cache_key}")
-            return self._model_cache[cache_key]
-        
+        return await self._get_or_create_forecast_task(
+            cache_key,
+            lambda: self._compute_campos_forecast(zone, year_horizons, scenario_params),
+        )
+
+    async def _compute_campos_forecast(
+        self,
+        zone: Optional[str],
+        year_horizons: List[int],
+        scenario_params: Optional[Dict[str, float]],
+    ) -> ForecastResult:
+        """Inner computation for generate_campos_forecast. See _compute_departamentos_forecast."""
         logger.info(f"Generating fresh campos forecast for {zone or 'aggregate'}")
-        
+
         try:
             # Collect input data in parallel
             macro_data_task = asyncio.create_task(self.data_pipeline.get_macro_indicators())
@@ -261,13 +325,8 @@ class ForecastService:
                 },
                 timestamp=datetime.utcnow()
             )
-            
-            # Cache the result
-            self._model_cache[cache_key] = result
-            self._cache_timestamps[cache_key] = datetime.utcnow()
-            
             return result
-            
+
         except Exception as e:
             logger.error(f"Error generating campos forecast: {e}")
             raise

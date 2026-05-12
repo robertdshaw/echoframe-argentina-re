@@ -80,14 +80,27 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning(f"Failed to pre-load seed data: {e}")
         
-        # Generate initial forecast to warm up models
+        # Pre-compute and cache the two forecast shapes the dashboard hits
+        # most often. Five of the departamentos page's endpoints
+        # (forecast, barrio-rankings, net-return, scenarios, narrative)
+        # all share the same year_horizons=[1,2,3] cache key — with the
+        # cache warmed here, the first user request returns from cache
+        # instead of triggering a 5-way parallel data-pipeline race.
         if settings.enable_regime_detection:
-            logger.info("Warming up forecasting models...")
+            logger.info("Pre-fetching dashboard-critical forecasts...")
             try:
-                await app.state.forecast_service.get_forecast_summary()
-                logger.info("Forecasting models warmed up successfully")
+                await asyncio.gather(
+                    app.state.forecast_service.generate_departamentos_forecast(
+                        barrio=None, year_horizons=[1, 2, 3]
+                    ),
+                    app.state.forecast_service.generate_campos_forecast(
+                        zone=None, year_horizons=[1, 2, 3]
+                    ),
+                    return_exceptions=True,
+                )
+                logger.info("Dashboard forecasts cached; first user request will return instantly")
             except Exception as e:
-                logger.warning(f"Failed to warm up forecasting models: {e}")
+                logger.warning(f"Failed to pre-fetch dashboard forecasts: {e}")
         
         logger.info("Application startup completed successfully")
         
@@ -137,6 +150,40 @@ app.add_middleware(
 
 # Gzip compression middleware
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+
+# HTTP browser-cache headers for the read-only dashboard endpoints.
+# A 60-second cache lets the browser serve repeats during a page
+# refresh / back-navigation without re-hitting the backend, which is
+# the largest contributor to perceived load time after a cold start.
+# Mutating endpoints (POST scenarios, POST narrative) get no-store.
+_BROWSER_CACHE_PREFIXES = (
+    "/api/v1/forecast/",
+    "/api/v1/market/",
+    "/api/v1/signals/",
+    "/api/v1/model/",
+)
+
+_BROWSER_CACHE_MAX_AGE = 60  # seconds
+
+
+@app.middleware("http")
+async def add_cache_control(request, call_next):
+    """Attach Cache-Control headers tuned per endpoint family."""
+    response = await call_next(request)
+    # Only cache successful GETs from the read-only API surface.
+    if request.method != "GET":
+        response.headers.setdefault("Cache-Control", "no-store")
+        return response
+    if response.status_code >= 400:
+        return response
+    path = request.url.path
+    if any(path.startswith(p) for p in _BROWSER_CACHE_PREFIXES):
+        response.headers["Cache-Control"] = (
+            f"public, max-age={_BROWSER_CACHE_MAX_AGE}, "
+            f"stale-while-revalidate={_BROWSER_CACHE_MAX_AGE * 4}"
+        )
+    return response
 
 
 # Custom exception handlers
