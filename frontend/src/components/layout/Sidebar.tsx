@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 export type PageKey = 'departamentos' | 'campos' | 'signals' | 'scenarios';
 
 interface NavItem {
@@ -76,7 +78,9 @@ interface Props {
   onChange: (page: PageKey) => void;
 }
 
-const Sidebar = ({ active, onChange }: Props) => (
+const Sidebar = ({ active, onChange }: Props) => {
+  const [sourcesOpen, setSourcesOpen] = useState(false);
+  return (
   <nav
     style={{
       background: 'var(--surface-card)',
@@ -159,38 +163,78 @@ const Sidebar = ({ active, onChange }: Props) => (
     <div
       style={{
         marginTop: 12,
-        padding: '10px 12px',
+        padding: '8px 12px',
         borderTop: '1px solid var(--border-2)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 4,
       }}
     >
-      <div
+      <button
+        type="button"
+        onClick={() => setSourcesOpen((o) => !o)}
+        aria-expanded={sourcesOpen}
         style={{
-          fontSize: 10,
-          fontWeight: 600,
-          letterSpacing: 0.14,
-          textTransform: 'uppercase',
-          color: 'var(--text-3)',
+          display: 'flex',
+          width: '100%',
+          alignItems: 'center',
+          gap: 8,
+          background: 'transparent',
+          border: 'none',
+          padding: '4px 0',
+          cursor: 'pointer',
+          textAlign: 'left',
         }}
       >
-        Data sources
-      </div>
-      <div style={{ fontSize: 11, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span className="dot dot-green" /> BCRA · live
-      </div>
-      <div style={{ fontSize: 11, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span className="dot dot-green" /> REM · live
-      </div>
-      <div style={{ fontSize: 11, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span className="dot dot-green" /> NewsData.io · live
-      </div>
-      <div style={{ fontSize: 11, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span className="dot dot-green" /> Properati · scraped
-      </div>
+        <span className="dot dot-green dot-pulse" aria-hidden />
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: 0.14,
+            textTransform: 'uppercase',
+            color: 'var(--text-3)',
+            flex: 1,
+          }}
+        >
+          Data sources · live
+        </span>
+        <span
+          aria-hidden
+          style={{
+            fontSize: 10,
+            color: 'var(--text-3)',
+            transition: 'transform 160ms ease',
+            transform: sourcesOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+          }}
+        >
+          ▶
+        </span>
+      </button>
+      {sourcesOpen && (
+        <div
+          style={{
+            marginTop: 6,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 4,
+            paddingLeft: 14,
+          }}
+        >
+          <div style={{ fontSize: 11, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="dot dot-green" /> BCRA · live
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="dot dot-green" /> REM · live
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="dot dot-green" /> NewsData.io · live
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-2)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="dot dot-green" /> Properati · scraped
+          </div>
+        </div>
+      )}
     </div>
   </nav>
-);
+  );
+};
 
 export default Sidebar;

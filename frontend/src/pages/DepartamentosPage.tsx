@@ -152,23 +152,14 @@ const DepartamentosPage = () => {
         </ErrorBoundary>
       </section>
 
-      {/* §04 WHAT COULD GO WRONG — three canonical scenarios */}
+      {/* §04 VERSUS ALTERNATIVES — hurdle-rate comparison.
+          Tail-risk scenarios moved into Evidence drawer below: for a
+          property investor the 80% band on the call already does the
+          tail-risk work; three discrete probability-weighted scenarios
+          read as academic. Analysts still get them on click. */}
       <section>
         <SectionLabel
           number="04"
-          eyebrow="What could go wrong"
-          title="Three canonical 12-month scenarios"
-          sub="Base case from the model posterior; FX-shock impact calibrated to empirical drawdowns in past brecha-spike episodes; regime crisis from the HMM crisis-conditional prior."
-        />
-        <ErrorBoundary fallbackTitle="Scenarios unavailable">
-          <ScenarioImpactPanel />
-        </ErrorBoundary>
-      </section>
-
-      {/* §05 VERSUS ALTERNATIVES — hurdle-rate comparison */}
-      <section>
-        <SectionLabel
-          number="05"
           eyebrow="Versus alternatives"
           title="Hurdle-rate comparison"
           sub="Where the apartment thesis sits against passive USD alternatives. The right framing is 'Treasuries plus optionality on Argentine normalisation,' not 'equity beating.'"
@@ -178,10 +169,10 @@ const DepartamentosPage = () => {
         </ErrorBoundary>
       </section>
 
-      {/* §06 GEOGRAPHY — sampled listings map */}
+      {/* §05 GEOGRAPHY — sampled listings map */}
       <section>
         <SectionLabel
-          number="06"
+          number="05"
           eyebrow="Geography"
           title="Listings across CABA"
           sub="Sampled apartments with real coordinates. Color = price/m² band, circle size ∝ surface."
@@ -191,10 +182,10 @@ const DepartamentosPage = () => {
         </ErrorBoundary>
       </section>
 
-      {/* §07 SIGNALS — denoised news driving the call */}
+      {/* §06 SIGNALS — denoised news driving the call */}
       <section>
         <SectionLabel
-          number="07"
+          number="06"
           eyebrow="News intelligence"
           title="Signals driving the current forecast"
           sub="Live Spanish-language news, classified by impact direction and magnitude. Each surviving headline carries a provenance tag naming the section it influences."
@@ -216,8 +207,12 @@ const DepartamentosPage = () => {
           analysts or skeptical clients who want to inspect the math. */}
       <EvidenceDrawer
         title="Model machinery & methodology"
-        subtitle="Forecast trajectory, outcome distribution, regime detection, calibration backtest. Collapsed by default."
+        subtitle="Forecast trajectory, outcome distribution, regime detection, tail-risk scenarios, calibration backtest. Collapsed by default."
       >
+        <ErrorBoundary fallbackTitle="Scenarios unavailable">
+          <ScenarioImpactPanel />
+        </ErrorBoundary>
+
         <ErrorBoundary>
           {forecast ? (
             <div className="card">
