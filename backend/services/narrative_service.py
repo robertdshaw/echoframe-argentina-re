@@ -217,8 +217,8 @@ class NarrativeService:
         self._cache[cache_key] = _CacheEntry(payload=payload, expires_at=time.time() + self.ttl_seconds)
         return payload
 
-    @staticmethod
     def _build_numbered_draft(
+        self,
         segment: str,
         forecast_payload: Dict[str, Any],
         signals: list,
