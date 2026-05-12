@@ -1,5 +1,6 @@
 import type { ForecastResponse } from '../../types';
 import { formatPct, formatProb, formatUsd } from '../../utils/formatters';
+import { applyBoomAdjustment, shouldWidenForBoom } from '../../utils/boomAdjust';
 
 interface Props {
   forecast: ForecastResponse;
@@ -18,7 +19,12 @@ const ExecutiveCard = ({ forecast, segment, location }: Props) => {
   const y3 = forecast.forecasts['3'] ?? forecast.forecasts[3];
   if (!y1) return null;
 
-  const m = y1.model_estimate;
+  // Apply boom-state band widening when the HMM gives material mass to
+  // a transition into boom: σ for that regime is essentially unidentified
+  // (fitted on n=1 quarter), so the displayed upside is widened 1.4×.
+  const rawM = y1.model_estimate;
+  const m = applyBoomAdjustment(rawM, forecast.regime_context);
+  const boomWidened = shouldWidenForBoom(forecast.regime_context);
   const isUp = m.median_change_pct >= 0;
   const unitLabel = segment === 'departamentos' ? 'USD / m²' : 'USD / ha';
   const placeLabel =
@@ -180,6 +186,21 @@ const ExecutiveCard = ({ forecast, segment, location }: Props) => {
             <span style={{ color: skew === 'upside' ? '#36D399' : '#FF6B6B' }}>
               {skew}
             </span>.
+            {boomWidened && (
+              <span
+                title="Upside half of the 80% band widened 1.4× because the HMM places material mass on a transition into the boom regime, which was fitted on n=1 quarter."
+                style={{
+                  marginLeft: 6,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: 0.04,
+                  color: 'rgba(255,200,140,0.95)',
+                  cursor: 'help',
+                }}
+              >
+                ⚠ boom-σ widened
+              </span>
+            )}
           </div>
 
           {/* Confidence bar */}
@@ -305,7 +326,10 @@ const ExecutiveCard = ({ forecast, segment, location }: Props) => {
           </div>
 
           {[y1, y2, y3].filter(Boolean).map((h) => {
-            const me = h!.model_estimate;
+            const me = applyBoomAdjustment(
+              h!.model_estimate,
+              forecast.regime_context,
+            );
             const positive = me.median_change_pct >= 0;
             return (
               <div key={h!.year}>

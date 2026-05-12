@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import type { ForecastResponse } from '../../types';
 import { formatUsd } from '../../utils/formatters';
+import { applyBoomAdjustment } from '../../utils/boomAdjust';
 
 interface Props {
   forecast: ForecastResponse;
@@ -53,10 +54,12 @@ const FanChart = ({ forecast, unit, showBehavioral = false }: Props) => {
   }));
 
   // Add forecast horizons. Median + 80%/95% bands as nested ribbons.
+  // Bands run through applyBoomAdjustment so the upside half widens
+  // when the HMM places material mass on a boom transition (n=1 σ).
   for (const year of [1, 2, 3]) {
     const fc = forecast.forecasts[String(year)] ?? forecast.forecasts[year];
     if (!fc) continue;
-    const m = fc.model_estimate;
+    const m = applyBoomAdjustment(fc.model_estimate, forecast.regime_context);
     points.push({
       label: `Y${year}`,
       isToday: false,
