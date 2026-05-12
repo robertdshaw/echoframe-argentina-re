@@ -12,6 +12,7 @@ import NetReturnWaterfall from '../components/forecast/NetReturnWaterfall';
 import HurdleRateBar from '../components/forecast/HurdleRateBar';
 import BarrioForecastPanel from '../components/forecast/BarrioForecastPanel';
 import TimingTriggerPanel from '../components/forecast/TimingTriggerPanel';
+import EvidenceDrawer from '../components/common/EvidenceDrawer';
 import RegimeIndicator from '../components/regime/RegimeIndicator';
 import RegimeHistoryStrip from '../components/regime/RegimeHistoryStrip';
 import ModelAccuracyPanel from '../components/model/ModelAccuracyPanel';
@@ -113,14 +114,98 @@ const DepartamentosPage = () => {
         <DataProvenanceStrip listingsFreshness="live" newsFreshness="live" />
       </section>
 
-      {/* 2. TRAJECTORY */}
+      {/* §01 WHERE TO BUY — barrio hierarchical heat map + ranked tables */}
       <section>
         <SectionLabel
           number="01"
-          eyebrow="Forecast trajectory"
-          title="Bayesian posterior · price path"
-          sub="Historical USD/m² recovery from 2018Q1 trough, with Student-t (df=4) posterior bands at Y1/Y2/Y3."
+          eyebrow="Where to buy"
+          title="Per-barrio 1y forecast"
+          sub="Hierarchical partial-pooled model. Each barrio borrows strength from the CABA-aggregate posterior; thin-data barrios are flagged."
         />
+        <ErrorBoundary fallbackTitle="Barrio forecast unavailable">
+          <BarrioForecastPanel onSelectBarrio={(name) => setBarrio(name)} />
+        </ErrorBoundary>
+      </section>
+
+      {/* §02 WHEN TO ACT — entry-quality timing triggers */}
+      <section>
+        <SectionLabel
+          number="02"
+          eyebrow="When to act"
+          title="Entry-quality reading"
+          sub="Four named triggers from BCRA, Properati, and the news feed roll up to a 0–10 gauge, with the closest historical analogy from the backtest."
+        />
+        <ErrorBoundary fallbackTitle="Entry-quality unavailable">
+          <TimingTriggerPanel />
+        </ErrorBoundary>
+      </section>
+
+      {/* §03 WHAT YOU'LL EARN — net annual USD return waterfall */}
+      <section>
+        <SectionLabel
+          number="03"
+          eyebrow="What you'll earn"
+          title="Net annual USD return"
+          sub="Gross appreciation plus rental yield, minus carrying costs, taxes, and amortised transaction friction. Drag the hold-period slider to see how patience changes the take-home."
+        />
+        <ErrorBoundary fallbackTitle="Net return unavailable">
+          <NetReturnWaterfall barrio={barrio || undefined} />
+        </ErrorBoundary>
+      </section>
+
+      {/* §04 VERSUS ALTERNATIVES — hurdle-rate comparison */}
+      <section>
+        <SectionLabel
+          number="04"
+          eyebrow="Versus alternatives"
+          title="Hurdle-rate comparison"
+          sub="Where the apartment thesis sits against passive USD alternatives. The right framing is 'Treasuries plus optionality on Argentine normalisation,' not 'equity beating.'"
+        />
+        <ErrorBoundary fallbackTitle="Hurdle comparison unavailable">
+          <HurdleRateBar barrio={barrio || undefined} />
+        </ErrorBoundary>
+      </section>
+
+      {/* §05 GEOGRAPHY — sampled listings map */}
+      <section>
+        <SectionLabel
+          number="05"
+          eyebrow="Geography"
+          title="Listings across CABA"
+          sub="Sampled apartments with real coordinates. Color = price/m² band, circle size ∝ surface."
+        />
+        <ErrorBoundary fallbackTitle="Map unavailable">
+          <PropertyMap barrio={barrio || undefined} />
+        </ErrorBoundary>
+      </section>
+
+      {/* §06 SIGNALS — denoised news driving the call */}
+      <section>
+        <SectionLabel
+          number="06"
+          eyebrow="News intelligence"
+          title="Signals driving the current forecast"
+          sub="Live Spanish-language news, classified by impact direction and magnitude. Each surviving headline carries a provenance tag naming the section it influences."
+        />
+        <ErrorBoundary fallbackTitle="News feed unavailable">
+          <div className="card">
+            <SignalFeed
+              defaultSegment="departamentos"
+              limit={8}
+              showFilters={false}
+            />
+          </div>
+        </ErrorBoundary>
+      </section>
+
+      {/* EVIDENCE DRAWER — model machinery; collapsed by default so the
+          narrative panels lead the page. Forecast trajectory, outcome
+          distribution, regime detection, and backtest live in here for
+          analysts or skeptical clients who want to inspect the math. */}
+      <EvidenceDrawer
+        title="Model machinery & methodology"
+        subtitle="Forecast trajectory, outcome distribution, regime detection, calibration backtest. Collapsed by default."
+      >
         <ErrorBoundary>
           {forecast ? (
             <div className="card">
@@ -134,6 +219,16 @@ const DepartamentosPage = () => {
                   gap: 12,
                 }}
               >
+                <div>
+                  <div className="eyebrow">Forecast trajectory</div>
+                  <div className="title-3" style={{ marginTop: 4 }}>
+                    Bayesian posterior · price path
+                  </div>
+                  <div className="body-sm" style={{ marginTop: 2, maxWidth: 560 }}>
+                    Historical USD/m² recovery from 2018Q1 trough, with
+                    Student-t (df=4) posterior bands at Y1/Y2/Y3.
+                  </div>
+                </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <select
                     value={barrio}
@@ -174,16 +269,7 @@ const DepartamentosPage = () => {
             <ChartCardSkeleton />
           )}
         </ErrorBoundary>
-      </section>
 
-      {/* 3. DISTRIBUTION + HORIZON */}
-      <section>
-        <SectionLabel
-          number="02"
-          eyebrow="Outcome distribution"
-          title="Where the model places its mass"
-          sub="Probability decomposed into five outcome buckets across the selected horizon."
-        />
         <div
           style={{
             display: 'grid',
@@ -202,7 +288,12 @@ const DepartamentosPage = () => {
                     marginBottom: 12,
                   }}
                 >
-                  <div className="eyebrow">5-bucket distribution</div>
+                  <div>
+                    <div className="eyebrow">Outcome distribution</div>
+                    <div className="title-3" style={{ marginTop: 4 }}>
+                      Year {horizon} · 5-bucket probability
+                    </div>
+                  </div>
                   <HorizonSelector value={horizon} onChange={setHorizon} />
                 </div>
                 <ProbabilityGauge
@@ -232,82 +323,15 @@ const DepartamentosPage = () => {
             )}
           </ErrorBoundary>
         </div>
-      </section>
 
-      {/* 4. BARRIO HEAT MAP + RANKED TABLES — answers "where to buy" */}
-      <section>
-        <SectionLabel
-          number="03"
-          eyebrow="Where to buy"
-          title="Per-barrio 1y forecast"
-          sub="Hierarchical partial-pooled model. Each barrio borrows strength from the CABA-aggregate posterior; thin-data barrios are flagged."
-        />
-        <ErrorBoundary fallbackTitle="Barrio forecast unavailable">
-          <BarrioForecastPanel onSelectBarrio={(name) => setBarrio(name)} />
+        <ErrorBoundary>
+          {forecast ? (
+            <RegimeIndicator regime={forecast.regime_context} />
+          ) : (
+            <ForecastNumbersSkeleton />
+          )}
         </ErrorBoundary>
-      </section>
 
-      {/* 5. TIMING TRIGGER PANEL — answers "when to act" */}
-      <section>
-        <SectionLabel
-          number="04"
-          eyebrow="When to act"
-          title="Entry-quality reading"
-          sub="Four named triggers from BCRA, Properati, and the news feed roll up to a 0–10 gauge, with the closest historical analogy from the backtest."
-        />
-        <ErrorBoundary fallbackTitle="Entry-quality unavailable">
-          <TimingTriggerPanel />
-        </ErrorBoundary>
-      </section>
-
-      {/* 6. NET RETURN WATERFALL — answers "what will I actually earn?" */}
-      <section>
-        <SectionLabel
-          number="05"
-          eyebrow="What you'll earn"
-          title="Net annual USD return"
-          sub="Gross appreciation plus rental yield, minus carrying costs, taxes, and amortised transaction friction. Drag the hold-period slider to see how patience changes the take-home."
-        />
-        <ErrorBoundary fallbackTitle="Net return unavailable">
-          <NetReturnWaterfall barrio={barrio || undefined} />
-        </ErrorBoundary>
-      </section>
-
-      {/* 7. HURDLE-RATE COMPARISON — answers "versus what?" */}
-      <section>
-        <SectionLabel
-          number="06"
-          eyebrow="Versus alternatives"
-          title="Hurdle-rate comparison"
-          sub="Where the apartment thesis sits against passive USD alternatives. The right framing is 'Treasuries plus optionality on Argentine normalisation,' not 'equity beating.'"
-        />
-        <ErrorBoundary fallbackTitle="Hurdle comparison unavailable">
-          <HurdleRateBar barrio={barrio || undefined} />
-        </ErrorBoundary>
-      </section>
-
-      {/* 8. GEOSPATIAL LISTINGS — map handles its own loading state internally,
-              but if forecast errors, fall back to a clean skeleton. */}
-      <section>
-        <SectionLabel
-          number="07"
-          eyebrow="Geography"
-          title="Listings across CABA"
-          sub="Sampled apartments with real coordinates. Color = price/m² band, circle size ∝ surface."
-        />
-        <ErrorBoundary fallbackTitle="Map unavailable">
-          <PropertyMap barrio={barrio || undefined} />
-        </ErrorBoundary>
-      </section>
-
-      {/* 9. MODEL VALIDATION */}
-      <section>
-        <SectionLabel
-          number="08"
-          eyebrow="Model validation"
-          title="Historical track record"
-          sub="Walk-forward leave-one-out backtest across 29 anchor quarters. Calibration, Brier, MAE vs naive."
-        />
         <ErrorBoundary fallbackTitle="Model insights unavailable">
           {insights?.status === 'ok' &&
           insights.backtest &&
@@ -354,43 +378,7 @@ const DepartamentosPage = () => {
             </>
           )}
         </ErrorBoundary>
-      </section>
-
-      {/* 10. REGIME */}
-      <section>
-        <SectionLabel
-          number="09"
-          eyebrow="Macro regime"
-          title="What state is the market in?"
-          sub="HMM posterior over Crisis / Recovery / Boom, with transition probabilities forward 4Q."
-        />
-        <ErrorBoundary>
-          {forecast ? (
-            <RegimeIndicator regime={forecast.regime_context} />
-          ) : (
-            <ForecastNumbersSkeleton />
-          )}
-        </ErrorBoundary>
-      </section>
-
-      {/* 11. SIGNALS */}
-      <section>
-        <SectionLabel
-          number="10"
-          eyebrow="News intelligence"
-          title="Signals driving the current forecast"
-          sub="Live Spanish-language news, classified by impact direction and magnitude."
-        />
-        <ErrorBoundary fallbackTitle="News feed unavailable">
-          <div className="card">
-            <SignalFeed
-              defaultSegment="departamentos"
-              limit={8}
-              showFilters={false}
-            />
-          </div>
-        </ErrorBoundary>
-      </section>
+      </EvidenceDrawer>
     </div>
   );
 };
