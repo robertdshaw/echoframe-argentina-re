@@ -39,8 +39,12 @@ services:
       - key: ENABLE_BEHAVIORAL_ADJUSTMENTS
         value: "true"
       - key: CORS_ORIGINS
-        # Tighten to the frontend origin after first deploy
-        value: '["*"]'
+        # Locked to the Render static-site origin + localhost for dev.
+        # Specific origins (vs the "*" wildcard) let allow_credentials
+        # stay True and avoid the CORS-spec quirk where browsers reject
+        # wildcard-plus-credentials preflights silently. Add additional
+        # origins (e.g. a custom domain) as JSON-array entries below.
+        value: '["https://echoframe-argentina-web.onrender.com","http://localhost:3000","http://localhost:5173"]'
       # Secrets — fill these in the Render dashboard, never commit values.
       - key: NEWSDATA_API_KEY
         sync: false
