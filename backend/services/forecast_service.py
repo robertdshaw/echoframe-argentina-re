@@ -99,12 +99,21 @@ class ForecastService:
             age = (datetime.utcnow() - started_at).total_seconds()
             if age < ttl_seconds:
                 if task.done():
-                    if task.exception() is None:
+                    # task.cancelled() must be checked before exception()
+                    # — calling exception() on a cancelled task raises.
+                    if not task.cancelled() and task.exception() is None:
                         return task.result()
-                    # Failed task — fall through and replace.
+                    # Cancelled or failed task — fall through and replace.
                 else:
-                    # In-flight — share the computation.
-                    return await task
+                    # In-flight — share the computation. If the awaited
+                    # task fails for *this* caller too, fall through to
+                    # the eviction logic below by re-raising; the next
+                    # request after eviction will retry.
+                    try:
+                        return await task
+                    except Exception:
+                        self._task_cache.pop(cache_key, None)
+                        raise
 
         # No live entry. Schedule fresh.
         task = asyncio.create_task(factory())

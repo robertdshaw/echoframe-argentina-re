@@ -22,6 +22,7 @@ reason — never blocks the rest of the dashboard.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from dataclasses import dataclass
@@ -30,6 +31,15 @@ from typing import Any, Dict, Optional
 from anthropic import AsyncAnthropic
 
 from config import settings
+
+
+# Hard timeout on the Anthropic SDK call. Render's free-tier proxy
+# closes idle connections at ~100s and the frontend axios timeout is
+# 60s, so we need the LLM call to either succeed or fail well inside
+# that envelope. 25s is generous for Sonnet 4.6 at ~900 max-tokens;
+# anything longer than this typically means the upstream is degraded
+# and the deterministic draft is the right answer.
+_ANTHROPIC_CALL_TIMEOUT_SECONDS: float = 25.0
 
 
 logger = logging.getLogger(__name__)
@@ -162,14 +172,29 @@ class NarrativeService:
         )
 
         try:
-            response = await self._client.messages.create(
-                model=self.model,
-                max_tokens=900,
-                system=self.SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": user_prompt}],
+            response = await asyncio.wait_for(
+                self._client.messages.create(
+                    model=self.model,
+                    max_tokens=900,
+                    system=self.SYSTEM_PROMPT,
+                    messages=[{"role": "user", "content": user_prompt}],
+                ),
+                timeout=_ANTHROPIC_CALL_TIMEOUT_SECONDS,
             )
             text_blocks = [b.text for b in response.content if getattr(b, "type", None) == "text"]
             narrative = "".join(text_blocks).strip()
+        except asyncio.TimeoutError:
+            logger.warning(
+                "Claude narrative call exceeded %.0fs budget; serving deterministic draft",
+                _ANTHROPIC_CALL_TIMEOUT_SECONDS,
+            )
+            return {
+                "status": "ok",
+                "narrative": draft,
+                "reason": "LLM polish timed out; served deterministic draft",
+                "model": self.model + " (draft fallback)",
+                "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            }
         except Exception as exc:
             logger.warning("Claude narrative call failed: %s", exc)
             # Graceful fallback: return the deterministic draft. The

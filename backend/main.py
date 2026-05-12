@@ -81,26 +81,38 @@ async def lifespan(app: FastAPI):
             logger.warning(f"Failed to pre-load seed data: {e}")
         
         # Pre-compute and cache the two forecast shapes the dashboard hits
-        # most often. Five of the departamentos page's endpoints
-        # (forecast, barrio-rankings, net-return, scenarios, narrative)
-        # all share the same year_horizons=[1,2,3] cache key — with the
-        # cache warmed here, the first user request returns from cache
-        # instead of triggering a 5-way parallel data-pipeline race.
+        # most often, but FIRE-AND-FORGET so startup completes immediately.
+        # The previous version awaited the gather and blocked uvicorn from
+        # accepting connections for 30-50s on a cold Render free-tier,
+        # which surfaced to the user as a 'Network Error' on every request
+        # during the warm-up window. With this pattern:
+        #   - Service binds the port and accepts connections in <1s.
+        #   - The first user request either hits the in-flight prefetch
+        #     task (via request coalescing) or, if it arrives before the
+        #     task started, schedules its own and the prefetch coalesces
+        #     into that one. Either way no duplicate computation.
         if settings.enable_regime_detection:
-            logger.info("Pre-fetching dashboard-critical forecasts...")
-            try:
-                await asyncio.gather(
-                    app.state.forecast_service.generate_departamentos_forecast(
-                        barrio=None, year_horizons=[1, 2, 3]
-                    ),
-                    app.state.forecast_service.generate_campos_forecast(
-                        zone=None, year_horizons=[1, 2, 3]
-                    ),
-                    return_exceptions=True,
-                )
-                logger.info("Dashboard forecasts cached; first user request will return instantly")
-            except Exception as e:
-                logger.warning(f"Failed to pre-fetch dashboard forecasts: {e}")
+            logger.info("Scheduling dashboard-critical forecast prefetch (background)...")
+
+            async def _prefetch_forecasts() -> None:
+                try:
+                    await asyncio.gather(
+                        app.state.forecast_service.generate_departamentos_forecast(
+                            barrio=None, year_horizons=[1, 2, 3]
+                        ),
+                        app.state.forecast_service.generate_campos_forecast(
+                            zone=None, year_horizons=[1, 2, 3]
+                        ),
+                        return_exceptions=True,
+                    )
+                    logger.info(
+                        "Background prefetch complete; forecast cache is warm"
+                    )
+                except Exception as exc:  # pragma: no cover
+                    logger.warning(f"Background forecast prefetch failed: {exc}")
+
+            # Don't await — let it run while uvicorn accepts traffic.
+            asyncio.create_task(_prefetch_forecasts())
         
         logger.info("Application startup completed successfully")
         
