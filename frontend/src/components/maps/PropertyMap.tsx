@@ -74,7 +74,10 @@ const PropertyMap = ({ barrio }: Props) => {
     return [lat, lon];
   }, [geo]);
 
-  // Quick stats for the legend ribbon.
+  // Quick stats for the legend ribbon. Median is computed only over listings
+  // that actually have a per-m² price — live Properati listings carry total
+  // price but not surface, so they're plotted on the map but excluded from
+  // the aggregate to avoid silently anchoring it to $0.
   const stats = useMemo(() => {
     if (!geo.length) return null;
     const prices = geo
@@ -84,6 +87,7 @@ const PropertyMap = ({ barrio }: Props) => {
     const median = prices[Math.floor(prices.length / 2)] ?? 0;
     return {
       n: geo.length,
+      n_priced: prices.length,
       median,
       min: prices[0] ?? 0,
       max: prices[prices.length - 1] ?? 0,
@@ -121,7 +125,7 @@ const PropertyMap = ({ barrio }: Props) => {
             </div>
             <div>
               <div className="eyebrow" style={{ fontSize: 9 }}>
-                Median
+                Median (n={stats.n_priced})
               </div>
               <div className="mono" style={{ fontWeight: 600 }}>
                 {formatUsd(stats.median)} /m²
@@ -129,7 +133,7 @@ const PropertyMap = ({ barrio }: Props) => {
             </div>
             <div>
               <div className="eyebrow" style={{ fontSize: 9 }}>
-                Avg (live)
+                Avg /m²
               </div>
               <div className="mono" style={{ fontWeight: 600 }}>
                 {formatUsd(avg_price)} /m²

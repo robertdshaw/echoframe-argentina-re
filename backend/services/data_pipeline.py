@@ -228,7 +228,8 @@ class DataPipeline:
         if segment not in ("departamentos", "campos"):
             raise ValueError(f"Invalid segment: {segment}")
 
-        listings: List[Dict[str, Any]] = []
+        scraped: List[Dict[str, Any]] = []
+        seeded: List[Dict[str, Any]] = []
         live_used = False
 
         # Live path: Properati covers departamentos only. Campos always seeded.
@@ -244,7 +245,6 @@ class DataPipeline:
                     timeout=8.0,
                 )
                 if scraped:
-                    listings = scraped
                     live_used = True
                     logger.info(
                         "Property listings (departamentos): %d live from Properati",
@@ -260,20 +260,31 @@ class DataPipeline:
                     exc,
                 )
 
-        if not listings:
-            try:
-                if segment == "departamentos":
-                    listings = await self.property_seeder.get_ba_listings(
-                        barrio=barrio, limit=limit
-                    )
-                else:
-                    listings = await self.property_seeder.get_campos_listings(
-                        zone=barrio, limit=limit
-                    )
-                logger.info("Property listings (%s): %d seeded", segment, len(listings))
-            except Exception as exc:
-                logger.error("Property seed fallback failed: %s", exc)
+        # Always pull the seed corpus too. Properati search-results listings
+        # carry total price but no surface_m2 / price_per_m2 (the search page
+        # doesn't expose surface), so on their own they collapse every per-m²
+        # aggregate to $0. The seed corpus provides the per-m² statistics;
+        # the scrape provides freshness and additional map points. Each
+        # listing keeps its own `data_source` tag so the UI can distinguish.
+        try:
+            if segment == "departamentos":
+                seeded = await self.property_seeder.get_ba_listings(
+                    barrio=barrio, limit=limit
+                )
+            else:
+                seeded = await self.property_seeder.get_campos_listings(
+                    zone=barrio, limit=limit
+                )
+            logger.info("Property listings (%s): %d seeded", segment, len(seeded))
+        except Exception as exc:
+            logger.error("Property seed fallback failed: %s", exc)
+            if not scraped:
                 return []
+
+        # Merge order: seeded first so per-m² aggregates have ground truth;
+        # scraped appended so they appear on the map without diluting stats.
+        # Cap to `limit` after merging.
+        merged = (seeded + scraped)[:limit]
 
         enriched = [
             {
@@ -282,7 +293,7 @@ class DataPipeline:
                 "segment": segment,
                 "freshness": "live" if live_used else "static_seed",
             }
-            for l in listings
+            for l in merged
         ]
 
         self._cache[cache_key] = enriched
