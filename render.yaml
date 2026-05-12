@@ -48,12 +48,12 @@ services:
         sync: false
 
   # ---------------------------------------------------------------
-  # Frontend — static React build served from CDN
+  # Frontend — static React build served from Render's global CDN.
+  # Static sites don't take a region field (they're edge-distributed).
   # ---------------------------------------------------------------
   - type: web
     name: echoframe-argentina-web
     runtime: static
-    region: oregon
     rootDir: frontend
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
