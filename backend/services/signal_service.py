@@ -15,6 +15,7 @@ from nlp.signal_classifier import SignalClassifier, SignalClassification
 from nlp.sentiment import SpanishSentimentAnalyzer, SentimentScore
 from nlp.entity_extractor import ArgentineEntityExtractor, ExtractedEntity
 from nlp.relevance_filter import filter_argentina_relevant
+from nlp.llm_relevance import get_llm_relevance_scorer
 from .data_pipeline import DataPipeline
 
 
@@ -95,16 +96,41 @@ class SignalService:
             # Stage 1 of the denoise pipeline: positive-allowlist filter
             # that keeps only Argentina-domestic headlines before we burn
             # cycles on classification + sentiment + entity extraction.
-            # Stage 2 (LLM dual-scoring) ships separately to keep cost
-            # tracking infrastructure isolated.
             relevant, dropped = filter_argentina_relevant(articles)
             if dropped:
                 logger.info(
-                    "Relevance filter dropped %d/%d off-topic articles",
+                    "Stage 1 relevance filter dropped %d/%d off-topic articles",
                     dropped,
                     len(articles),
                 )
-            articles = relevant[:limit]
+
+            # Stage 2: LLM dual-scoring (arg_relevance × re_relevance) via
+            # Haiku, URL-hash cached, budget-gated. Drops items whose
+            # product score falls below threshold. Fails closed when the
+            # monthly budget is exhausted — Stage 1 stays as backstop.
+            try:
+                scorer = get_llm_relevance_scorer()
+                scored, dropped_llm, status = await scorer.score_articles(relevant)
+                if status.get("status") == "ok" and (
+                    status.get("n_scored_live") or status.get("n_cached")
+                ):
+                    logger.info(
+                        "Stage 2 LLM scoring: scored=%d cached=%d dropped=%d cost=$%.4f "
+                        "remaining=$%.2f",
+                        status.get("n_scored_live", 0),
+                        status.get("n_cached", 0),
+                        status.get("n_dropped", 0),
+                        status.get("projected_cost_usd", 0.0),
+                        status.get("budget_remaining_usd", 0.0),
+                    )
+                elif status.get("status") == "budget_exhausted":
+                    logger.warning(
+                        "Stage 2 LLM scoring: budget exhausted; serving Stage 1 only"
+                    )
+                articles = scored[:limit]
+            except Exception as exc:
+                logger.warning("Stage 2 LLM scoring failed (%s); falling back", exc)
+                articles = relevant[:limit]
 
             # Process articles through NLP pipeline
             processed_signals = await self._process_articles_batch(articles)
