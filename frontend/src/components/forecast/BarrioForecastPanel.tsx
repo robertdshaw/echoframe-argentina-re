@@ -36,9 +36,9 @@ interface Props {
 type SortMode = 'total_return' | 'yield' | 'risk_adjusted';
 
 const SORT_LABEL: Record<SortMode, string> = {
-  total_return: 'Top 5 · total return (appreciation + yield)',
-  yield: 'Top 5 · gross rental yield',
-  risk_adjusted: 'Top 5 · risk-adjusted (μ / σ)',
+  total_return: 'Best total returns — price gains plus rent',
+  yield: 'Best rental income',
+  risk_adjusted: 'Steadiest returns — most reward per unit of risk',
 };
 
 const SORT_VALUE: Record<SortMode, (b: BarrioForecastEntry) => number> = {
@@ -120,13 +120,15 @@ const BarrioForecastPanel = ({ onSelectBarrio }: Props) => {
         <div>
           <div className="eyebrow">Where to buy</div>
           <h3 className="title-3" style={{ margin: '4px 0 0 0' }}>
-            Per-barrio 1y forecast · hierarchical partial pooling
+            Per-neighborhood 12-month forecast
           </h3>
-          <div className="body-sm" style={{ marginTop: 4, maxWidth: 620 }}>
-            Each barrio is projected from the CABA-aggregate posterior
-            ({formatPct(data.caba_mu_pct, 1)} ± {data.caba_sigma_pct.toFixed(1)}pp σ) via β / α
-            priors. Thin-data barrios (n_eff &lt; {data.thin_data_threshold}) are excluded
-            from the ranked tables — their σ is dominated by the city prior.
+          <div className="body-sm" style={{ marginTop: 4, maxWidth: 640 }}>
+            How much each Buenos Aires neighborhood is expected to gain in
+            USD over the next 12 months, based on its own history and the
+            citywide trend ({formatPct(data.caba_mu_pct, 1)} median).
+            Neighborhoods without enough recent sales data are shown faded
+            and kept out of the ranked tables — their numbers are less
+            reliable than the rest.
           </div>
         </div>
       </div>
@@ -186,68 +188,6 @@ const BarrioForecastPanel = ({ onSelectBarrio }: Props) => {
               })}
           </MapContainer>
 
-          {/* Floating heat-scale legend */}
-          <div
-            style={{
-              position: 'absolute',
-              left: 12,
-              bottom: 12,
-              zIndex: 401,
-              background: 'rgba(255,255,255,0.96)',
-              border: '1px solid var(--border-1)',
-              borderRadius: 8,
-              padding: '10px 12px',
-              boxShadow: 'var(--shadow-md)',
-              fontSize: 11,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 9,
-                fontWeight: 600,
-                letterSpacing: 0.14,
-                textTransform: 'uppercase',
-                color: 'var(--text-3)',
-                marginBottom: 6,
-              }}
-            >
-              Total return (1y)
-            </div>
-            {HEAT_STOPS.map((s) => (
-              <div
-                key={s.label}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  lineHeight: 1.8,
-                }}
-              >
-                <span
-                  style={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: 3,
-                    background: s.color,
-                  }}
-                />
-                <span className="mono" style={{ color: 'var(--text-2)' }}>
-                  {s.label}
-                </span>
-              </div>
-            ))}
-            <div
-              style={{
-                marginTop: 6,
-                paddingTop: 6,
-                borderTop: '1px dashed var(--border-1)',
-                color: 'var(--text-3)',
-                fontSize: 10,
-              }}
-            >
-              Faded fill = thin data
-            </div>
-          </div>
         </div>
 
         {selectedBarrio && (
@@ -290,24 +230,24 @@ const BarrioForecastPanel = ({ onSelectBarrio }: Props) => {
             </div>
             <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <Stat
-                label="1y median appreciation"
+                label="Expected price gain (12m)"
                 value={formatPct(selectedBarrio.median_change_pct, 1)}
-                detail={`80% CI ${formatPct(selectedBarrio.ci_80_lower, 1)} / ${formatPct(selectedBarrio.ci_80_upper, 1)}`}
+                detail={`Likely range ${formatPct(selectedBarrio.ci_80_lower, 1)} to ${formatPct(selectedBarrio.ci_80_upper, 1)}`}
               />
               <Stat
-                label="Gross rental yield"
+                label="Rental income (annual)"
                 value={formatPct(selectedBarrio.gross_yield_pct, 1)}
-                detail="Pre-cost; see waterfall for net"
+                detail="Before costs — see 'What you'll earn' for the take-home"
               />
               <Stat
-                label="Total return (1y)"
+                label="Total return (12m)"
                 value={formatPct(selectedBarrio.total_return_pct, 1)}
-                detail="Appreciation + gross yield"
+                detail="Price gain plus rental income"
               />
               <Stat
-                label="Risk-adjusted ratio"
+                label="Stability score"
                 value={selectedBarrio.risk_adjusted_pct.toFixed(2)}
-                detail={`σ = ${selectedBarrio.sigma_pct.toFixed(1)}pp`}
+                detail={`Higher = steadier returns. Uncertainty range: ±${selectedBarrio.sigma_pct.toFixed(1)} percentage points`}
               />
               <Stat
                 label="Current price"
@@ -315,13 +255,90 @@ const BarrioForecastPanel = ({ onSelectBarrio }: Props) => {
                 detail={`Tier · ${selectedBarrio.tier.replace(/_/g, ' ')}`}
               />
               <Stat
-                label="Model parameters"
-                value={`β=${selectedBarrio.beta.toFixed(2)} · α=${selectedBarrio.alpha.toFixed(1)}pp`}
-                detail={`n_eff = ${selectedBarrio.n_eff}${selectedBarrio.thin_data ? ' (thin data — directional only)' : ''}`}
+                label="How this neighborhood moves"
+                value={
+                  selectedBarrio.beta > 1.05
+                    ? 'Leads the city'
+                    : selectedBarrio.beta < 0.95
+                      ? 'Lags the city'
+                      : 'Tracks the city'
+                }
+                detail={`${selectedBarrio.beta.toFixed(2)}× the citywide swing · local momentum ${formatPct(selectedBarrio.alpha, 1)}/yr · based on ${selectedBarrio.n_eff} quarters of sales history${selectedBarrio.thin_data ? ' (limited — directional only)' : ''}`}
               />
             </div>
           </div>
         )}
+      </div>
+
+      {/* Horizontal legend strip — sits between the map and the tables
+          so the colour scale is visible without overlapping the map and
+          without crushing against the bottom edge on shorter heights. */}
+      <div
+        style={{
+          padding: 'var(--s-3) var(--s-6)',
+          borderTop: '1px solid var(--border-2)',
+          background: 'var(--surface-raised)',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: 18,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: 0.14,
+            textTransform: 'uppercase',
+            color: 'var(--text-3)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          12-month total return
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: 14,
+            flex: 1,
+          }}
+        >
+          {HEAT_STOPS.map((s) => (
+            <div
+              key={s.label}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontSize: 12,
+                color: 'var(--text-2)',
+              }}
+            >
+              <span
+                style={{
+                  width: 14,
+                  height: 14,
+                  borderRadius: 3,
+                  background: s.color,
+                  boxShadow: 'inset 0 0 0 1px rgba(15,27,61,0.08)',
+                }}
+              />
+              <span className="mono">{s.label}</span>
+            </div>
+          ))}
+        </div>
+        <div
+          style={{
+            fontSize: 11,
+            color: 'var(--text-3)',
+            fontStyle: 'italic',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Faded circles = neighborhoods with thin sales data
+        </div>
       </div>
 
       {/* Three ranked tables side-by-side */}
@@ -351,15 +368,16 @@ const BarrioForecastPanel = ({ onSelectBarrio }: Props) => {
       <div
         style={{
           padding: 'var(--s-3) var(--s-6) var(--s-5)',
-          fontSize: 10.5,
+          fontSize: 11,
           color: 'var(--text-3)',
-          lineHeight: 1.5,
+          lineHeight: 1.55,
         }}
       >
-        Hierarchical structure: μ_barrio = μ_caba · β + α, with σ shrunk
-        toward the city posterior in proportion to effective sample size.
-        Barrios with n_eff &lt; {data.thin_data_threshold} are excluded from the ranked tables;
-        click any centroid on the map to see its forecast regardless.
+        Each neighborhood&apos;s forecast blends its own sales history with
+        the citywide trend, so areas with limited recent data lean more
+        on the city average. Click any circle on the map to see that
+        neighborhood&apos;s full breakdown — including price level,
+        expected appreciation, rental yield, and a confidence band.
       </div>
     </div>
   );

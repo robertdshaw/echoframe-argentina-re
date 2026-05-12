@@ -183,20 +183,20 @@ const TimingTriggerPanel = () => {
               borderRadius: 6,
               fontSize: 12,
               color: 'var(--text-2)',
-              lineHeight: 1.5,
+              lineHeight: 1.55,
             }}
           >
             <strong style={{ color: 'var(--text-1)' }}>
-              Historical analogy.
+              Last time this looked similar.
             </strong>{' '}
-            This configuration was last observed in{' '}
+            The closest match in the historical record was{' '}
             <span className="mono">{data.historical_analogy_period}</span>;
-            realised 12-month return:{' '}
+            buyers who entered then saw{' '}
             <span className="mono" style={{ color, fontWeight: 600 }}>
               {formatPct(data.historical_analogy_realised_pct, 1)}
-            </span>
-            . Anchor period reads from the calibration data backtest, not a
-            generative model.
+            </span>{' '}
+            in USD over the following 12 months. This is what actually
+            happened, not a model projection.
           </div>
         </div>
 
@@ -212,7 +212,7 @@ const TimingTriggerPanel = () => {
               marginBottom: 4,
             }}
           >
-            Trigger breakdown
+            Conditions checked
           </div>
           <div>
             {data.triggers.map((t) => (

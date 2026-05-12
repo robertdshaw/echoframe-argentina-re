@@ -120,10 +120,10 @@ const DepartamentosPage = () => {
         <SectionLabel
           number="01"
           eyebrow="Where to buy"
-          title="Per-barrio 1y forecast"
-          sub="Hierarchical partial-pooled model. Each barrio borrows strength from the CABA-aggregate posterior; thin-data barrios are flagged."
+          title="Best Buenos Aires neighborhoods · next 12 months"
+          sub="Where the strongest expected returns sit, blending each neighborhood's own sales history with the citywide trend. Click any circle on the map to drill in."
         />
-        <ErrorBoundary fallbackTitle="Barrio forecast unavailable">
+        <ErrorBoundary fallbackTitle="Neighborhood forecast unavailable">
           <BarrioForecastPanel onSelectBarrio={(name) => setBarrio(name)} />
         </ErrorBoundary>
       </section>
@@ -133,8 +133,8 @@ const DepartamentosPage = () => {
         <SectionLabel
           number="02"
           eyebrow="When to act"
-          title="Entry-quality reading"
-          sub="Four named triggers from BCRA, Properati, and the news feed roll up to a 0–10 gauge, with the closest historical analogy from the backtest."
+          title="Is this a good time to buy?"
+          sub="Four real-world conditions that historically marked good entry windows — peso stability, inventory levels, central bank reserves, mortgage availability. A 0–10 read with the closest historical match."
         />
         <ErrorBoundary fallbackTitle="Entry-quality unavailable">
           <TimingTriggerPanel />
