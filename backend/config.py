@@ -202,10 +202,20 @@ class Settings(BaseSettings):
         return self.environment == "production"
     
     def get_cors_settings(self) -> Dict[str, Any]:
-        """Get CORS configuration for FastAPI."""
+        """Get CORS configuration for FastAPI.
+
+        IMPORTANT: ``allow_credentials`` MUST be False whenever
+        ``allow_origins`` contains the "*" wildcard. The CORS spec
+        explicitly disallows this combination, and browsers reject the
+        preflight silently — which axios reports as the bare string
+        "Network Error" (with no HTTP exchange ever happening).
+        We don't use cookies / Authorization headers from the browser,
+        so credentials=False is the right setting here.
+        """
+        wildcard = any(o == "*" for o in self.cors_origins)
         return {
             "allow_origins": self.cors_origins,
-            "allow_credentials": True,
+            "allow_credentials": not wildcard,
             "allow_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["*"],
         }

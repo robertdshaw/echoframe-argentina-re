@@ -19,7 +19,6 @@ import RegimeHistoryStrip from '../components/regime/RegimeHistoryStrip';
 import ModelAccuracyPanel from '../components/model/ModelAccuracyPanel';
 import HmmPanel from '../components/model/HmmPanel';
 import PropertyMap from '../components/maps/PropertyMap';
-import DataProvenanceStrip from '../components/common/DataProvenanceStrip';
 import SignalFeed from '../components/signals/SignalFeed';
 import ErrorBoundary from '../components/common/ErrorBoundary';
 import {
@@ -112,7 +111,6 @@ const DepartamentosPage = () => {
           </div>
         )}
         <NarrativeCard segment="departamentos" location={barrio || undefined} />
-        <DataProvenanceStrip listingsFreshness="live" newsFreshness="live" />
       </section>
 
       {/* §01 WHERE TO BUY — barrio hierarchical heat map + ranked tables */}
