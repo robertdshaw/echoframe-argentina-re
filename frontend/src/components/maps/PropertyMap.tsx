@@ -11,6 +11,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useListings } from '../../hooks/useListings';
 import { formatNumber, formatUsd } from '../../utils/formatters';
+import MapSizingFix from './MapSizingFix';
 
 // CABA city centre (Plaza de Mayo); used when no listings have geometry.
 const CABA_CENTER: [number, number] = [-34.6087, -58.4173];
@@ -175,6 +176,7 @@ const PropertyMap = ({ barrio }: Props) => {
           </div>
         )}
         <MapContainer
+          key={`listings-map-${barrio || 'all-caba'}`}
           center={center}
           zoom={12}
           style={{ height: 480, width: '100%' }}
@@ -182,6 +184,7 @@ const PropertyMap = ({ barrio }: Props) => {
           scrollWheelZoom={false}
           attributionControl
         >
+          <MapSizingFix />
           <ZoomControl position="topright" />
           <TileLayer
             attribution='&copy; <a href="https://carto.com/attributions">CARTO</a> · <a href="https://www.openstreetmap.org/copyright">OSM</a>'

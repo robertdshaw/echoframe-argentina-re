@@ -7,6 +7,7 @@ import {
   ZoomControl,
 } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import MapSizingFix from '../maps/MapSizingFix';
 import { useBarrioRankings } from '../../hooks/useBarrioRankings';
 import type { BarrioForecastEntry } from '../../types';
 import { formatPct, formatUsd } from '../../utils/formatters';
@@ -141,6 +142,7 @@ const BarrioForecastPanel = ({ onSelectBarrio }: Props) => {
       >
         <div style={{ position: 'relative' }}>
           <MapContainer
+            key="barrio-heat-map"
             center={CABA_CENTER}
             zoom={12}
             style={{ height: 460, width: '100%' }}
@@ -148,6 +150,7 @@ const BarrioForecastPanel = ({ onSelectBarrio }: Props) => {
             scrollWheelZoom={false}
             attributionControl
           >
+            <MapSizingFix />
             <ZoomControl position="topright" />
             <TileLayer
               attribution='&copy; <a href="https://carto.com/attributions">CARTO</a> · <a href="https://www.openstreetmap.org/copyright">OSM</a>'
