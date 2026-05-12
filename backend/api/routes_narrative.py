@@ -32,6 +32,8 @@ from services.forecast_service import ForecastService
 from services.signal_service import SignalService
 from services.data_pipeline import DataPipeline
 from services.narrative_service import NarrativeService
+from services.timing_signals import TimingSignals
+from models.bayesian_barrios import BarrioForecaster
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/insights", tags=["insights"])
@@ -140,10 +142,148 @@ async def post_narrative(
     backtest = _load_backtest()
     insights = {"backtest": backtest} if backtest else None
 
+    # Gather slot extras for the slot-driven briefing template. Each is
+    # best-effort: when the underlying service errors, we drop the slot
+    # rather than fabricate. The template paragraphs that depend on
+    # missing slots are quietly omitted from the draft.
+    slot_extras = await _gather_slot_extras(
+        segment=segment,
+        forecast_result=forecast_result,
+        data_pipeline=fs.data_pipeline,
+    )
+
     payload = await _narrative.generate(
         segment=segment,
         forecast_payload=_forecast_payload(forecast_result),
         signals=signals,
         insights=insights,
+        slot_extras=slot_extras,
     )
     return JSONResponse(content=payload)
+
+
+# Carrying-cost constants for the briefing's "What you take home" slot.
+# Keep these in sync with backend.api.routes_forecast._NET_RETURN_DEFAULTS;
+# narrative is read-only at the data layer so duplicating here keeps the
+# briefing endpoint self-contained.
+_BRIEFING_NET_DEFAULTS: Dict[str, float] = {
+    "gross_yield_pct": 4.6,
+    "vacancy_pct": -0.7,
+    "abl_tax_pct": -0.8,
+    "expensas_pct": -0.4,
+    "fx_friction_pct": -0.4,
+    "tx_round_trip_pct": -7.0,
+    "hold_years": 5,
+}
+
+
+async def _gather_slot_extras(
+    segment: str,
+    forecast_result: Any,
+    data_pipeline: DataPipeline,
+) -> Dict[str, Any]:
+    """Best-effort fetch of the structured slots the new template needs."""
+    extras: Dict[str, Any] = {}
+
+    # Departamentos-only slots — the briefing template's "Where" / net
+    # return / scenarios paragraphs are CABA-specific. For campos the
+    # briefing degrades to The Call + Confidence sections only.
+    if segment != "departamentos":
+        return extras
+
+    year_1 = (forecast_result.forecasts or {}).get(1, {}).get("model_estimate") or {}
+    median_pct = float(year_1.get("median_change_pct", 0))
+    ci80 = year_1.get("ci_80") or [0, 0]
+    ci_lower = float(ci80[0])
+    ci_upper = float(ci80[1])
+    # Derive sigma from the 80% half-width for the barrio model.
+    caba_sigma = max(0.1, (ci_upper - ci_lower) / (2 * 1.2816))
+
+    # Top barrios — use the existing partial-pooled forecaster.
+    try:
+        forecaster = BarrioForecaster()
+        ranked = forecaster.forecast_all(caba_mu=median_pct, caba_sigma=caba_sigma)
+        # Drop thin-data barrios; the template only quotes barrios we
+        # can stand behind quantitatively.
+        eligible = [b for b in ranked if not b.thin_data]
+        extras["top_barrios"] = [
+            {
+                "name": b.name,
+                "total_return_pct": b.total_return_pct,
+                "median_change_pct": b.median_change_pct,
+                "gross_yield_pct": b.gross_yield_pct,
+            }
+            for b in eligible[:3]
+        ]
+    except Exception as exc:
+        logger.warning("Narrative slot fetch (barrios) failed: %s", exc)
+
+    # Entry-quality reading — keep it isolated from listing scrapes.
+    try:
+        timing = TimingSignals(data_pipeline=data_pipeline)
+        reading = await timing.get_entry_quality()
+        extras["entry_quality"] = reading.as_dict()
+    except Exception as exc:
+        logger.warning("Narrative slot fetch (entry quality) failed: %s", exc)
+
+    # Net return decomposition — deterministic arithmetic, no service call.
+    try:
+        d = _BRIEFING_NET_DEFAULTS
+        hold = int(d["hold_years"])
+        tx_amortised = d["tx_round_trip_pct"] / hold
+        net_annual = (
+            median_pct
+            + d["gross_yield_pct"]
+            + d["vacancy_pct"]
+            + d["abl_tax_pct"]
+            + d["expensas_pct"]
+            + d["fx_friction_pct"]
+            + tx_amortised
+        )
+        extras["net_return"] = {
+            "appreciation_pct": round(median_pct, 1),
+            "gross_yield_pct": round(d["gross_yield_pct"], 1),
+            "net_annual_pct": round(net_annual, 1),
+            "hold_years": hold,
+        }
+    except Exception as exc:
+        logger.warning("Narrative slot fetch (net return) failed: %s", exc)
+
+    # Canonical scenarios — same probabilities/impacts the panel uses.
+    try:
+        regime = forecast_result.regime_context or {}
+        transitions = regime.get("transition_probabilities", {}) or {}
+        base_prob = float(
+            transitions.get("remain_recovery")
+            or transitions.get("remain_in_regime")
+            or 0.70
+        )
+        crisis_prob = float(transitions.get("transition_to_crisis") or 0.08)
+        fx_prob = max(0.05, 1.0 - base_prob - crisis_prob)
+        extras["scenarios"] = [
+            {
+                "key": "base_case",
+                "probability": round(base_prob, 2),
+                "median_pct": round(median_pct, 1),
+                "band_lower_pct": round(ci_lower, 1),
+                "band_upper_pct": round(ci_upper, 1),
+            },
+            {
+                "key": "fx_shock",
+                "probability": round(fx_prob, 2),
+                "median_pct": -11.0,
+                "band_lower_pct": -15.0,
+                "band_upper_pct": -8.0,
+            },
+            {
+                "key": "regime_crisis",
+                "probability": round(crisis_prob, 2),
+                "median_pct": -9.4,
+                "band_lower_pct": -14.2,
+                "band_upper_pct": -4.6,
+            },
+        ]
+    except Exception as exc:
+        logger.warning("Narrative slot fetch (scenarios) failed: %s", exc)
+
+    return extras

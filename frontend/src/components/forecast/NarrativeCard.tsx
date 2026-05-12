@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useNarrative } from '../../hooks/useNarrative';
 import type { Segment } from '../../types';
 
@@ -23,26 +24,42 @@ const Skel = ({
   />
 );
 
+// Minimal inline-bold renderer for **…** spans. Avoids pulling in a full
+// markdown parser; the slot-driven briefing template only uses ** for
+// paragraph titles and never for nested markdown.
+const renderBold = (text: string): ReactNode[] => {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((p, i) => {
+    if (p.startsWith('**') && p.endsWith('**')) {
+      return (
+        <strong key={i} style={{ color: 'var(--text-1)' }}>
+          {p.slice(2, -2)}
+        </strong>
+      );
+    }
+    return <span key={i}>{p}</span>;
+  });
+};
+
 const NarrativeCard = ({ segment, location }: Props) => {
   const { data, loading, error } = useNarrative(segment, location);
 
-  // Highlight the final "Bottom line: …" sentence with extra emphasis.
+  // Render the briefing, highlighting a final "Bottom line:" sentence
+  // when present (legacy free-form output) or the last paragraph (new
+  // slot-driven template, which ends with the bottom-line summary in
+  // the Confidence statement paragraph).
   const renderNarrative = (text: string) => {
-    const idx = text.lastIndexOf('Bottom line:');
-    if (idx === -1) {
-      return text.split('\n\n').map((p, i) => (
-        <p key={i} style={{ marginBottom: 12, lineHeight: 1.6 }}>
-          {p}
-        </p>
-      ));
+    const paragraphs = text.split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
+    if (paragraphs.length === 0) {
+      return <p>{text}</p>;
     }
-    const main = text.slice(0, idx).trim();
-    const tail = text.slice(idx).trim();
+    const last = paragraphs[paragraphs.length - 1];
+    const main = paragraphs.slice(0, -1);
     return (
       <>
-        {main.split('\n\n').map((p, i) => (
+        {main.map((p, i) => (
           <p key={i} style={{ marginBottom: 12, lineHeight: 1.6 }}>
-            {p}
+            {renderBold(p)}
           </p>
         ))}
         <div
@@ -53,13 +70,13 @@ const NarrativeCard = ({ segment, location }: Props) => {
               'linear-gradient(135deg, rgba(232,93,38,0.08), rgba(74,59,143,0.08))',
             borderLeft: '3px solid var(--orange-500)',
             borderRadius: 6,
-            fontWeight: 600,
+            fontWeight: 500,
             fontSize: 14,
             color: 'var(--text-1)',
             lineHeight: 1.55,
           }}
         >
-          {tail}
+          {renderBold(last)}
         </div>
       </>
     );
