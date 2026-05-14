@@ -566,19 +566,19 @@ class ForecastService:
         regime_context: Dict,
     ) -> Dict[str, Any]:
         """
-        Run Bayesian departamentos model for a single horizon.
-
-        BayesianDepartamentosModel.generate_forecast(horizons, regime_weights)
-        is synchronous and returns Dict[int, ForecastDistribution]. We pull
-        the single requested year and adapt it to the dict shape that the
-        rest of forecast_service.py and the route handlers consume.
+        Run Bayesian departamentos model for a single horizon, then apply
+        scenario overrides (mortgage rate / inflation / sentiment / GDP)
+        as deterministic shifts on the posterior median + 80/95 bands.
         """
-        _ = inputs  # Inputs are baked into the model via calibration_data.
         regime_weights = self._regime_weights_from_context(regime_context)
         results = self.bayesian_departamentos.generate_forecast(
             horizons=[year], regime_weights=regime_weights
         )
-        return self._forecast_distribution_to_dict(results[year])
+        forecast = self._forecast_distribution_to_dict(results[year])
+        overrides = (inputs or {}).get("scenario_overrides") or {}
+        return self._apply_scenario_overrides(
+            forecast, overrides, segment="departamentos"
+        )
 
     async def _run_bayesian_campos(
         self,
@@ -588,19 +588,116 @@ class ForecastService:
         zone: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
-        Run Bayesian campos model for a single horizon and region.
-
-        BayesianCamposModel.generate_regional_forecast(region, horizons,
-        regime_weights) is synchronous and returns
-        Dict[int, ForecastDistribution] for the given region.
+        Run Bayesian campos model for a single horizon and region, then
+        apply scenario overrides (retenciones / inflation / sentiment /
+        GDP) as deterministic shifts on the posterior median + bands.
         """
-        _ = inputs
         regime_weights = self._regime_weights_from_context(regime_context)
         region = zone or "core_pampa"
         results = self.bayesian_campos.generate_regional_forecast(
             region=region, horizons=[year], regime_weights=regime_weights
         )
-        return self._forecast_distribution_to_dict(results[year])
+        forecast = self._forecast_distribution_to_dict(results[year])
+        overrides = (inputs or {}).get("scenario_overrides") or {}
+        return self._apply_scenario_overrides(
+            forecast, overrides, segment="campos"
+        )
+
+    @staticmethod
+    def _apply_scenario_overrides(
+        forecast: Dict[str, Any],
+        overrides: Dict[str, float],
+        segment: str,
+    ) -> Dict[str, Any]:
+        """
+        Deterministic post-hoc shift of the median + bands based on
+        what-if scenario sliders. Each driver has a documented impact
+        coefficient on the year-over-year USD price change.
+
+        Reference points (baseline values, all keyed to Q1 2026):
+          inflation_target          baseline 15.0 (REM consensus 2026)
+          usd_ars_target            baseline 1130 (BCRA mayorista Q1 2026)
+          mortgage_rate_adjustment  baseline 0   (no shift from current)
+          retenciones_change        baseline 0   (campos export tax)
+          news_sentiment_override   baseline 0   (-1 to +1)
+          gdp_growth_override       baseline 4.5 (REM consensus 2026)
+
+        Coefficients are stylised but directionally consistent with the
+        cited literature on Argentine real-estate and farmland.
+        """
+        if not overrides:
+            return forecast
+
+        # Pull current overrides with safe defaults.
+        delta = 0.0
+        if segment == "departamentos":
+            # Mortgage rate: each -1pp reduces real borrowing cost and
+            # adds demand at the floor. ~+0.6% on year-1 USD/m².
+            mort = float(overrides.get("mortgage_rate_adjustment") or 0.0)
+            delta += -0.6 * mort
+            # Inflation above 15% baseline drags real USD/m² recovery.
+            inf = float(overrides.get("inflation_target") or 15.0)
+            delta += -0.25 * (inf - 15.0)
+            # News sentiment override (-1 .. +1) tilts the call ±2pp.
+            sent = float(overrides.get("news_sentiment_override") or 0.0)
+            delta += 2.0 * sent
+            # GDP growth above 4.5% baseline lifts demand modestly.
+            gdp = float(overrides.get("gdp_growth_override") or 4.5)
+            delta += 0.4 * (gdp - 4.5)
+        else:  # campos
+            # Retenciones (export tax) change: each -1pp lifts land cash
+            # yield ≈ +0.3% effective USD/ha appreciation. Positive
+            # change (higher tax) drags by the same coefficient.
+            ret = float(overrides.get("retenciones_change") or 0.0)
+            delta += -0.3 * ret
+            # Sentiment: campos sentiment carries less weight than urban
+            # because commodity prices dominate.
+            sent = float(overrides.get("news_sentiment_override") or 0.0)
+            delta += 1.2 * sent
+            # USD-ARS: weaker peso ⇒ USD land prices nominally up.
+            usd = float(overrides.get("usd_ars_target") or 1130.0)
+            delta += 0.005 * (usd - 1130.0)
+            # GDP override has a small spillover via cash-yield demand.
+            gdp = float(overrides.get("gdp_growth_override") or 4.5)
+            delta += 0.2 * (gdp - 4.5)
+
+        if abs(delta) < 0.01:
+            return forecast
+
+        adjusted = dict(forecast)
+        adjusted["median_change_pct"] = round(
+            float(forecast.get("median_change_pct", 0)) + delta, 2
+        )
+        adjusted["mean_change_pct"] = round(
+            float(forecast.get("mean_change_pct", 0)) + delta, 2
+        )
+
+        # Shift the band endpoints by the same delta (parallel shift —
+        # the scenario changes the central case, not the uncertainty).
+        for key in ("ci_80", "ci_95"):
+            band = forecast.get(key)
+            if band is not None and len(band) == 2:
+                adjusted[key] = (
+                    round(float(band[0]) + delta, 2),
+                    round(float(band[1]) + delta, 2),
+                )
+
+        # Re-derive probability of increase from the shifted distribution
+        # so it reflects the new central case.
+        sigma = max(0.5, float(forecast.get("std_change_pct", 3.2)))
+        from scipy import stats as _stats
+        new_mu = adjusted["median_change_pct"]
+        adjusted["p_increase"] = round(1 - _stats.norm.cdf(0, loc=new_mu, scale=sigma), 3)
+        adjusted["p_decrease"] = round(1 - adjusted["p_increase"], 3)
+        adjusted["p_increase_5pct"] = round(
+            1 - _stats.norm.cdf(5, loc=new_mu, scale=sigma), 3
+        )
+        adjusted["p_increase_10pct"] = round(
+            1 - _stats.norm.cdf(10, loc=new_mu, scale=sigma), 3
+        )
+        adjusted["p_decrease_5pct"] = round(_stats.norm.cdf(-5, loc=new_mu, scale=sigma), 3)
+
+        return adjusted
 
     @staticmethod
     def _regime_weights_from_context(regime_context: Dict[str, Any]) -> Dict[str, float]:
