@@ -211,10 +211,16 @@ const FanChart = ({ forecast, unit, showBehavioral = false }: Props) => {
       <div
         style={{
           display: 'flex',
-          gap: 18,
-          marginTop: 8,
+          flexWrap: 'wrap',
+          rowGap: 8,
+          columnGap: 20,
+          marginTop: 16,
+          padding: '10px 14px',
+          background: 'var(--surface-sunken)',
+          border: '1px solid var(--border-2)',
+          borderRadius: 6,
           fontSize: 11,
-          color: '#5A6582',
+          color: 'var(--text-2)',
         }}
       >
         <Legend swatch="#0F1B3D" line>
