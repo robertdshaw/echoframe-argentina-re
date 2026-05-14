@@ -108,7 +108,8 @@ const FanChart = ({ forecast, unit, showBehavioral = false }: Props) => {
   const maxY = Math.max(...allValues) * 1.03;
 
   return (
-    <div style={{ width: '100%', height: 340 }}>
+    <div style={{ width: '100%' }}>
+      <div style={{ width: '100%', height: 340 }}>
       <ResponsiveContainer>
         <ComposedChart data={data} margin={{ top: 12, right: 24, left: 0, bottom: 6 }}>
           <CartesianGrid stroke="#EEF0F5" strokeDasharray="3 3" vertical={false} />
@@ -208,13 +209,14 @@ const FanChart = ({ forecast, unit, showBehavioral = false }: Props) => {
           />
         </ComposedChart>
       </ResponsiveContainer>
+      </div>
       <div
         style={{
           display: 'flex',
           flexWrap: 'wrap',
           rowGap: 8,
           columnGap: 22,
-          marginTop: 20,
+          marginTop: 16,
           paddingTop: 14,
           borderTop: '1px solid var(--border-2)',
           fontSize: 11,
