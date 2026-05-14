@@ -169,14 +169,35 @@ async def get_property_listings(
                 price_for_avg = float(price)
                 total_prices.append(price_for_avg)
             
-            # Convert to response format
+            # Derive the right total / type keys per segment. Campos
+            # seed entries don't carry a `price_usd` field (only
+            # `price_usd_per_ha`) and use `use_type` instead of `type`,
+            # which is why earlier popups showed Total $0 and Type
+            # Unknown on every campos parcel.
+            if segment == SegmentEnum.CAMPOS:
+                hectares = float(listing_raw.get("hectares") or 0)
+                per_ha = float(listing_raw.get("price_usd_per_ha") or 0)
+                total_usd = (
+                    listing_raw.get("price_usd")
+                    if listing_raw.get("price_usd")
+                    else (per_ha * hectares if per_ha and hectares else None)
+                )
+                property_type = (
+                    listing_raw.get("use_type")
+                    or listing_raw.get("type")
+                    or "Unknown"
+                )
+            else:
+                total_usd = listing_raw.get("price_usd")
+                property_type = listing_raw.get("type", "Unknown")
+
             listing = PropertyListing(
                 id=listing_raw.get("id", "unknown"),
-                price_usd=listing_raw.get("price_usd"),
+                price_usd=total_usd,
                 price_per_m2=listing_raw.get("price_per_m2") if segment == SegmentEnum.DEPARTAMENTOS else None,
                 price_usd_per_ha=listing_raw.get("price_usd_per_ha") if segment == SegmentEnum.CAMPOS else None,
                 location=listing_raw.get("barrio") or listing_raw.get("zone", "Unknown"),
-                property_type=listing_raw.get("type", "Unknown"),
+                property_type=property_type,
                 size=listing_raw.get("surface_m2") or listing_raw.get("hectares", 0),
                 segment=segment,
                 latitude=listing_raw.get("latitude"),
