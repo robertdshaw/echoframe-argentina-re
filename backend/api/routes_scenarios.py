@@ -13,7 +13,8 @@ from fastapi.responses import JSONResponse
 
 from .schemas import (
     ScenarioParameters, ScenarioForecastResponse, ForecastResponse,
-    SegmentEnum
+    SegmentEnum, HorizonForecast, ModelEstimate, BehavioralAdjustment,
+    ConfidenceInterval, RegimeContext, TopSignal, ModelMetadata,
 )
 from services.forecast_service import ForecastService
 from services.data_pipeline import DataPipeline
@@ -415,10 +416,68 @@ async def get_parameter_info():
 # Helper functions for response conversion
 
 def _convert_forecast_result_to_response(forecast_result) -> ForecastResponse:
-    """Convert ForecastResult to ForecastResponse schema."""
-    # This would normally use the same conversion logic as in routes_forecast.py
-    # For brevity, returning a simplified structure
-    return forecast_result  # In reality, this needs full conversion
+    """
+    Marshal a ForecastResult dataclass into the Pydantic ForecastResponse.
+
+    Mirrors the per-field conversion in routes_forecast.get_departamentos_forecast
+    so the inner ci_80 / ci_95 list/tuple shapes become ConfidenceInterval
+    objects and Pydantic validation passes. The previous stub returned the
+    raw dataclass directly, which broke /scenarios/simulate with a 500
+    because Pydantic couldn't coerce list-shaped ci_80 into the schema.
+    """
+    response_forecasts: Dict[int, HorizonForecast] = {}
+    for year, forecast_data in (forecast_result.forecasts or {}).items():
+        model_est = forecast_data.get("model_estimate") or {}
+        behavioral_adj = forecast_data.get("behavioral_adjusted") or {}
+        ci80 = model_est.get("ci_80") or [0, 0]
+        ci95 = model_est.get("ci_95") or [0, 0]
+        b_ci80 = behavioral_adj.get("ci_80") or [0, 0]
+        b_ci95 = behavioral_adj.get("ci_95") or [0, 0]
+        projected = (
+            forecast_result.current_price
+            * (1 + float(model_est.get("median_change_pct", 0)) / 100)
+        )
+        response_forecasts[year] = HorizonForecast(
+            year=year,
+            model_estimate=ModelEstimate(
+                median_change_pct=float(model_est.get("median_change_pct", 0)),
+                mean_change_pct=float(model_est.get("mean_change_pct", 0)),
+                ci_80=ConfidenceInterval(lower=float(ci80[0]), upper=float(ci80[1]), confidence_level=80),
+                ci_95=ConfidenceInterval(lower=float(ci95[0]), upper=float(ci95[1]), confidence_level=95),
+                p_increase=float(model_est.get("p_increase", 0)),
+                p_increase_5pct=float(model_est.get("p_increase_5pct", 0)),
+                p_increase_10pct=float(model_est.get("p_increase_10pct", 0)),
+                p_decrease=float(model_est.get("p_decrease", 0)),
+                p_decrease_5pct=float(model_est.get("p_decrease_5pct", 0)),
+                projected_price=projected,
+            ),
+            behavioral_adjusted=BehavioralAdjustment(
+                median_change_pct=float(behavioral_adj.get("median_change_pct", 0)),
+                ci_80=ConfidenceInterval(lower=float(b_ci80[0]), upper=float(b_ci80[1]), confidence_level=80),
+                ci_95=ConfidenceInterval(lower=float(b_ci95[0]), upper=float(b_ci95[1]), confidence_level=95),
+                p_increase=float(behavioral_adj.get("p_increase", 0)),
+                p_decrease_narrative=str(
+                    behavioral_adj.get("p_decrease_narrative")
+                    or "Behavioral-adjusted tail mass reflects Argentine market psychology."
+                ),
+            ),
+        )
+
+    regime = forecast_result.regime_context or {}
+    return ForecastResponse(
+        segment=forecast_result.segment,
+        current_price=forecast_result.current_price,
+        forecasts=response_forecasts,
+        regime_context=RegimeContext(
+            current=regime.get("current", "recovery"),
+            confidence=float(regime.get("confidence", 0)),
+            key_driver=str(regime.get("key_driver", "Model-based regime detection")),
+            transition_probabilities=regime.get("transition_probabilities", {}) or {},
+        ),
+        top_signals=[TopSignal(**s) for s in (forecast_result.top_signals or [])],
+        model_metadata=ModelMetadata(**(forecast_result.model_metadata or {})),
+        timestamp=forecast_result.timestamp,
+    )
 
 
 def _convert_forecast_result_to_dict(forecast_result) -> Dict[str, Any]:
